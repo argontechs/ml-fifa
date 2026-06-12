@@ -35,6 +35,19 @@ def top_scorelines(m: np.ndarray, k: int = 5) -> list[tuple[tuple[int, int], flo
     return sorted(flat, key=lambda t: -t[1])[:k]
 
 
+def rescale_wdl(m: np.ndarray, target: tuple[float, float, float]) -> np.ndarray:
+    """Rescale the win/draw/loss regions of a score matrix to hit target W/D/L probs,
+    preserving the relative scoreline shape inside each region."""
+    ph, pd_, pa = wdl(m)
+    out = m.copy()
+    n = m.shape[0]
+    il, iu, di = np.tril_indices(n, -1), np.triu_indices(n, 1), np.diag_indices(n)
+    out[il] *= target[0] / max(ph, 1e-12)
+    out[di] *= target[1] / max(pd_, 1e-12)
+    out[iu] *= target[2] / max(pa, 1e-12)
+    return out / out.sum()
+
+
 def tier(p_max: float) -> str:
     if p_max >= LOCK:
         return "LOCK"

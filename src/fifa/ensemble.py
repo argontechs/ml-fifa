@@ -6,10 +6,16 @@ import pandas as pd
 from . import matrix as mx
 
 
+MARKET_WEIGHT = 0.6
+
+
 class Predictor:
-    def __init__(self, dc, gbm, fb, rho: float = -0.05, w_dc: float = 0.5):
+    def __init__(self, dc, gbm, fb, rho: float = -0.05, w_dc: float = 0.5,
+                 calibrator=None, book=None):
         self.dc, self.gbm, self.fb = dc, gbm, fb
         self.rho, self.w_dc = rho, w_dc
+        self.calibrator = calibrator
+        self.book = book or {}
 
     def matrix_from_lambdas(self, dc_l, gbm_l):
         m1 = mx.score_matrix(dc_l[0], dc_l[1], self.rho)
@@ -22,4 +28,15 @@ class Predictor:
         dc_l = self.dc.predict_lambdas(home, away, neutral)
         X = self.fb.features_for(home, away, date, tournament, neutral, country=country)
         lh, la = self.gbm.predict_lambdas(X)
-        return self.matrix_from_lambdas(dc_l, (float(lh[0]), float(la[0])))
+        m = self.matrix_from_lambdas(dc_l, (float(lh[0]), float(la[0])))
+        if self.calibrator is not None:
+            m = mx.rescale_wdl(m, tuple(self.calibrator.transform(mx.wdl(m))[0]))
+        market = self.book.get((home, away))
+        if market is not None:
+            model_p = mx.wdl(m)
+            target = tuple(
+                MARKET_WEIGHT * mp + (1 - MARKET_WEIGHT) * op
+                for mp, op in zip(market, model_p)
+            )
+            m = mx.rescale_wdl(m, target)
+        return m

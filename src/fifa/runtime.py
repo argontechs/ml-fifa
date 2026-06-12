@@ -13,13 +13,16 @@ from .gbm import GoalModel
 DEFAULT_RHO, DEFAULT_W = -0.05, 0.5
 
 
-def tuned_params() -> tuple[float, float]:
+def tuned_params() -> tuple[float, float, "WDLCalibrator | None"]:
+    from .calibrate import WDLCalibrator
+
     path = data.DATA_DIR / "backtest_report.json"
     if path.exists():
         rep = json.loads(path.read_text())
-        return rep["rho"], rep["w_dc"]
+        cal = WDLCalibrator.from_dict(rep["calibrator"]) if "calibrator" in rep else None
+        return rep["rho"], rep["w_dc"], cal
     print("WARNING: no backtest_report.json — using default rho/w (run backtest.py)")
-    return DEFAULT_RHO, DEFAULT_W
+    return DEFAULT_RHO, DEFAULT_W, None
 
 
 def build_predictor(force: bool = False) -> Predictor:
@@ -31,8 +34,13 @@ def build_predictor(force: bool = False) -> Predictor:
     today = played["date"].max()
     dc = DixonColes().fit(played, ref_date=today)
     gbm = GoalModel().fit(X, y_home, y_away, elo_df["date"], ref_date=today)
-    rho, w_dc = tuned_params()
-    return Predictor(dc, gbm, fb, rho=rho, w_dc=w_dc)
+    rho, w_dc, cal = tuned_params()
+    from . import odds
+
+    book = odds.fetch_book(force=force)
+    if book:
+        print(f"bookmaker odds loaded for {len(book)} fixtures (market-blended)")
+    return Predictor(dc, gbm, fb, rho=rho, w_dc=w_dc, calibrator=cal, book=book)
 
 
 def predict_fixture(pred: Predictor, home: str, away: str, date, neutral: bool,
