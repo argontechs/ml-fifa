@@ -45,3 +45,20 @@ def test_real_model_multilingual_signs():
     ])
     assert scores[0] > 0 and scores[2] > 0
     assert scores[1] < 0 and scores[3] < 0
+
+
+def poison_model(texts, **kw):
+    if any("POISON" in t for t in texts):
+        raise RuntimeError("model exploded")
+    return stub_model(texts)
+
+
+def test_poison_post_cannot_stall_the_queue(tmp_path):
+    conn = db.connect(tmp_path / "s.db")
+    for text in ("goal!", "POISON \x00 frame", "another goal!"):
+        db.insert_post(conn, 1.0, "bsky", 1, "home", text)
+    n = scorer.run_once(conn, poison_model)
+    assert n == 3  # batch completes despite the poison item
+    frame = db.posts_frame(conn, 1)
+    assert frame["score"].notna().all()  # nothing left to crash-loop on
+    assert (frame["score"] > 0).sum() == 2  # the two good posts scored normally

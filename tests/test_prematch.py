@@ -40,6 +40,17 @@ def test_snapshot_frozen_at_kickoff_prematch_posts_only(tmp_path):
     assert prematch.record_kickoffs(conn, _fx(kickoff), path, now) == 0
 
 
+def test_late_poller_still_freezes_snapshot(tmp_path):
+    # poller was down across kickoff and comes back 6h later — snapshot must still
+    # freeze (content is identical: only posts with ts <= kickoff are counted)
+    kickoff = "2026-06-13 19:00"
+    conn = _setup(tmp_path, kickoff)
+    path = tmp_path / "prematch.jsonl"
+    now = pd.Timestamp(kickoff) + pd.Timedelta(hours=6)
+    assert prematch.record_kickoffs(conn, _fx(kickoff), path, now) == 1
+    assert prematch.load(path)[1]["n_posts"] == 2  # in-match post still excluded
+
+
 def test_no_record_before_kickoff(tmp_path):
     kickoff = "2026-06-13 19:00"
     conn = _setup(tmp_path, kickoff)

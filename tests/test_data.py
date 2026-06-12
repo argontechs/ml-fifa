@@ -100,3 +100,20 @@ def test_seed_tokens_are_placeholders_not_teams():
     for name in ("France", "3rd Place", "A1"):
         assert not data.is_placeholder(name)
     data.assert_known(["France", "1A", "3ABCDF"], {"France"})  # must not raise
+
+
+def test_download_atomic_keeps_old_cache_on_invalid_body(tmp_path, monkeypatch):
+    dest = tmp_path / "f.json"
+    dest.write_text('{"good": true}')
+    import os as _os
+    old = time.time() - 9999 * 3600
+    _os.utime(dest, (old, old))
+
+    def bad_get(url, headers=None, timeout=None):
+        return FakeResp(content=b"<html>503 error page</html>")
+
+    monkeypatch.setattr(data.requests, "get", bad_get)
+    import json as _json
+    out = data.download("http://u", dest, validator=lambda b: _json.loads(b))
+    assert _json.loads(out.read_text()) == {"good": True}  # old cache survived
+    assert not list(tmp_path.glob("*.tmp"))  # no temp litter

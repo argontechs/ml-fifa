@@ -57,27 +57,73 @@ def centroid_signature(center: np.ndarray, cols: list[str], top: int = 3) -> tup
     return tuple(cols[i] for i in order)
 
 
+_FEATURE_PHRASES = {
+    "npg90": "goal threat", "ast90": "creator", "sh90": "shot volume",
+    "sot_pct": "shot accuracy", "conv": "clinical finishing", "crs90": "crossing",
+    "int90": "interceptor", "tklw90": "tackler", "fld90": "foul magnet",
+    "fls90": "physical edge", "off90": "line-runner", "card90": "aggressor",
+}
+
+
 def label_for(signature: tuple[str, ...], group: str = "MF") -> str:
     sig = set(signature)
     for proto, name in GROUP_ARCHETYPES.get(group, []):
         if len(sig & proto) >= 2:
             return name
-    return "High " + " · ".join(signature[:2]) + " profile"
+    # human fallback — raw column names must never reach the public page (audit)
+    a, b = (_FEATURE_PHRASES.get(s, s.replace("90", "")) for s in signature[:2])
+    return f"{a.capitalize()} · {b}"
 
 
 def name_clusters(centers: np.ndarray, cols: list[str], group: str = "MF") -> dict[int, str]:
     names: dict[int, str] = {}
     for i, c in enumerate(centers):
-        base = label_for(centroid_signature(c, cols), group=group)
-        if base in names.values():
-            base = f"{base} ({centroid_signature(c, cols)[0]})"
+        sig = centroid_signature(c, cols)
+        base = label_for(sig, group=group)
+        k = 1
+        while base in names.values():  # loop until unique (audit: single-pass collided)
+            extra = _FEATURE_PHRASES.get(sig[min(k, len(sig) - 1)], "variant")
+            base = f"{label_for(sig, group=group)} ({extra})"
+            k += 1
+            if k > 4:
+                base = f"{base} {i}"
         names[i] = base
     return names
 
 
+def _registry_match(centers, local_names, group, registry):
+    """Carry stable names across builds: a new centroid close (cosine) to a stored
+    one inherits the stored name, so routine refreshes don't rename archetypes."""
+    stored = registry.get(group, [])
+    out = dict(local_names)
+    taken = set()
+    for i, c in enumerate(centers):
+        best, best_d = None, 0.35  # cosine distance threshold
+        cn = c / (np.linalg.norm(c) + 1e-12)
+        for s in stored:
+            sv = np.asarray(s["center"])
+            sv = sv / (np.linalg.norm(sv) + 1e-12)
+            d = 1.0 - float(cn @ sv)
+            if d < best_d and s["name"] not in taken:
+                best, best_d = s["name"], d
+        if best is not None:
+            out[i] = best
+            taken.add(best)
+    registry[group] = [{"name": out[i], "center": list(map(float, centers[i]))}
+                       for i in range(len(centers))]
+    return out
+
+
 def fit_by_group(X: pd.DataFrame, meta: pd.DataFrame, k_range=range(3, 6),
-                 seed: int = 42) -> tuple[np.ndarray, dict[int, str]]:
+                 seed: int = 42, registry_path=None) -> tuple[np.ndarray, dict[int, str]]:
     """Cluster each position group separately. Returns (global labels, label→name)."""
+    import json
+    from pathlib import Path
+
+    registry = {}
+    if registry_path is not None and Path(registry_path).exists():
+        registry = json.loads(Path(registry_path).read_text())
+
     labels = np.full(len(X), -1, dtype=int)
     names: dict[int, str] = {}
     offset = 0
@@ -87,10 +133,14 @@ def fit_by_group(X: pd.DataFrame, meta: pd.DataFrame, k_range=range(3, 6),
             continue
         res = fit(X[mask], k_range=k_range, seed=seed)
         local = name_clusters(res["centers"], list(X.columns), group=group)
+        local = _registry_match(res["centers"], local, group, registry)
         labels[mask] = res["labels"] + offset
         for i, name in local.items():
             names[i + offset] = f"{group} · {name}"
         offset += res["k"]
+
+    if registry_path is not None:
+        Path(registry_path).write_text(json.dumps(registry))
     return labels, names
 
 

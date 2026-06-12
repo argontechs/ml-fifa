@@ -33,7 +33,17 @@ def run_once(conn, model, batch: int = 128) -> int:
         return 0
     ids = [r[0] for r in rows]
     texts = [r[1] for r in rows]
-    db.set_scores(conn, ids, score_texts(model, texts))
+    try:
+        scores = score_texts(model, texts)
+    except Exception:  # poison batch: retry per item so one bad post can't stall the queue
+        scores = []
+        for t in texts:
+            try:
+                scores.append(score_texts(model, [t])[0])
+            except Exception:  # noqa: BLE001 — neutral sentinel, queue moves on
+                print(f"scorer: poison post neutralized: {t[:60]!r}")
+                scores.append(0.0)
+    db.set_scores(conn, ids, scores)
     return len(rows)
 
 

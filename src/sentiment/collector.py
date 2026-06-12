@@ -48,11 +48,22 @@ def route(text: str, kwsets: dict[str, set[str]]) -> str | None:
     return None
 
 
-def _extract_text(raw: str) -> str | None:
+def _cursor_url(url: str, cursor: dict) -> str:
+    """Jetstream resumes from time_us — reconnects without it silently drop posts."""
+    t = cursor.get("time_us")
+    if not t:
+        return url
+    sep = "&" if "?" in url else "?"
+    return f"{url}{sep}cursor={t}"
+
+
+def _extract_text(raw: str, cursor: dict | None = None) -> str | None:
     try:
         msg = json.loads(raw)
     except (json.JSONDecodeError, TypeError):
         return None
+    if cursor is not None and isinstance(msg.get("time_us"), int):
+        cursor["time_us"] = msg["time_us"]
     if msg.get("kind") != "commit":
         return None
     commit = msg.get("commit") or {}
@@ -64,30 +75,37 @@ def _extract_text(raw: str) -> str | None:
     return text if isinstance(text, str) and text.strip() else None
 
 
-async def consume(source, conn, windows_fn, clock=time.time, source_tag="bsky") -> int:
+async def consume(source, conn, windows_fn, clock=time.time, source_tag="bsky",
+                  cursor: dict | None = None) -> int:
     """Drain `source` (async iterator of raw Jetstream JSON). Returns posts stored."""
     stored = 0
     async for raw in source:
-        text = _extract_text(raw)
-        if text is None:
-            continue
-        for match, kwsets in windows_fn():
-            side = route(text, kwsets)
-            if side is not None:
-                db.insert_post(conn, ts=clock(), source=source_tag,
-                               match_key=match["key"], side=side, text=text)
-                stored += 1
+        try:  # one bad message/db hiccup must never kill collection (audit)
+            text = _extract_text(raw, cursor)
+            if text is None:
+                continue
+            for match, kwsets in windows_fn():
+                side = route(text, kwsets)
+                if side is not None:
+                    db.insert_post(conn, ts=clock(), source=source_tag,
+                                   match_key=match["key"], side=side, text=text)
+                    stored += 1
+        except Exception as exc:  # noqa: BLE001
+            print(f"collector: message skipped ({exc})")
     return stored
 
 
-async def jetstream_source(url: str = JETSTREAM_URL):
-    """Yield raw messages forever; reconnect with exponential backoff on drop."""
+async def jetstream_source(url: str = JETSTREAM_URL, cursor: dict | None = None):
+    """Yield raw messages forever; reconnect with exponential backoff on drop,
+    resuming from the last seen time_us so outages don't lose posts."""
     import websockets
 
     backoff = 1.0
+    cursor = cursor if cursor is not None else {}
     while True:
         try:
-            async with websockets.connect(url, ping_interval=30) as ws:
+            async with websockets.connect(_cursor_url(url, cursor),
+                                          ping_interval=30) as ws:
                 backoff = 1.0
                 async for raw in ws:
                     yield raw

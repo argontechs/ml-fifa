@@ -36,7 +36,8 @@ def _host_of(location: str) -> str:
 
 def load_fixtures(force: bool = False, max_age_hours: float = 6.0) -> pd.DataFrame:
     path = data.download(data.FIXTURES_URL, data.DATA_DIR / "fixtures.json",
-                         max_age_hours=max_age_hours, force=force)
+                         max_age_hours=max_age_hours, force=force,
+                         validator=lambda b: json.loads(b))
     feed = json.loads(path.read_text())
     rows = []
     for m in feed:

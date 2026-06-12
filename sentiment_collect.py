@@ -72,9 +72,10 @@ async def main():
         print(f"replay done — {stored} posts stored in {DB_PATH}")
         return
     print("collector running — Ctrl-C to stop")
+    cursor: dict = {}
     await asyncio.gather(
-        collector.consume(collector.jetstream_source(), conn,
-                          windows_fn=collector.windows_from_fixtures()),
+        collector.consume(collector.jetstream_source(cursor=cursor), conn,
+                          windows_fn=collector.windows_from_fixtures(), cursor=cursor),
         goal_poller(conn),
     )
 

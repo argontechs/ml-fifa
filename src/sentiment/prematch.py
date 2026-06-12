@@ -32,8 +32,10 @@ def _mood(posts: pd.DataFrame, side: str) -> float | None:
 
 
 def record_kickoffs(conn, fx: pd.DataFrame, path: Path, now: pd.Timestamp,
-                    lookback_min: int = 30) -> int:
-    """Snapshot matches whose kickoff passed within the last `lookback_min` minutes."""
+                    lookback_min: int = 1440) -> int:
+    """Snapshot matches whose kickoff passed within the last `lookback_min` minutes.
+    24h lookback: a poller outage spanning kickoff no longer loses the snapshot —
+    content is unaffected because only posts with ts <= kickoff are counted."""
     book = load(path)
     new = 0
     for r in fx.itertuples(index=False):

@@ -114,4 +114,7 @@ if os.environ.get("DASH_DEPLOY", "1") != "0":
     print("7/7 deploying to Cloudflare Pages…")
     from fifa.deploy import deploy_dashboard
 
-    deploy_dashboard()
+    if not deploy_dashboard():
+        import sys
+
+        sys.exit(1)  # surfaces to the cron wrapper → heartbeat /fail ping → alert

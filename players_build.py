@@ -20,7 +20,8 @@ X, meta = features.build_matrix(df)
 print(f"   {len(X)} outfield players with ≥{features.MIN_MINUTES} minutes")
 
 print("3/4 clustering…")
-labels, names = cluster.fit_by_group(X, meta)
+labels, names = cluster.fit_by_group(
+    X, meta, registry_path=Path(__file__).resolve().parent / "data" / "archetype_registry.json")
 xy = cluster.project2d(X)
 print(f"   {len(set(names.values()))} archetypes: " + ", ".join(sorted(set(names.values()))))
 

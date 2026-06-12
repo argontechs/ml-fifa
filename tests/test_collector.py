@@ -67,3 +67,25 @@ def test_post_matching_two_matches_lands_in_both(tmp_path):
                                   windows_fn=lambda: [(MATCH, KW), (match2, kw2)]))
     assert len(db.posts_frame(conn, 1)) == 1
     assert len(db.posts_frame(conn, 2)) == 1
+
+
+def test_cursor_tracking_and_resume_url():
+    holder = {}
+    msgs = [
+        json.dumps({"did": "x", "kind": "commit", "time_us": 111,
+                    "commit": {"operation": "create", "collection": "app.bsky.feed.post",
+                               "record": {"text": "Vamos Mexico!"}}}),
+        json.dumps({"did": "x", "kind": "commit", "time_us": 222,
+                    "commit": {"operation": "create", "collection": "app.bsky.feed.post",
+                               "record": {"text": "irrelevant"}}}),
+    ]
+    import sqlite3
+    conn = sqlite3.connect(":memory:")
+    from sentiment import db as sdb
+    conn.executescript(sdb._SCHEMA)
+    asyncio.run(collector.consume(_fake_source(msgs), conn,
+                                  windows_fn=lambda: [(MATCH, KW)], cursor=holder))
+    assert holder["time_us"] == 222  # tracked even for non-matching posts
+    url = collector._cursor_url("wss://example/subscribe?wantedCollections=x", holder)
+    assert url.endswith("&cursor=222")
+    assert collector._cursor_url("wss://example/sub", {}) == "wss://example/sub"

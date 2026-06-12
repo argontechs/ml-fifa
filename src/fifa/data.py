@@ -1,6 +1,7 @@
 """Downloads, caching, cleaning, and team-name normalization."""
 from __future__ import annotations
 
+import os
 import re
 import time
 from pathlib import Path
@@ -24,7 +25,10 @@ FIXTURES_URL = "https://fixturedownload.com/feed/json/fifa-world-cup-2026"
 SUCCESSORS = {"Yugoslavia": "Serbia", "Czechoslovakia": "Czech Republic"}
 
 
-def download(url: str, dest: Path, max_age_hours: float = 12.0, force: bool = False) -> Path:
+def download(url: str, dest: Path, max_age_hours: float = 12.0, force: bool = False,
+             validator=None) -> Path:
+    """Atomic fetch-with-cache: the last good file is only replaced after the new
+    body passes `validator` (audit: a 503 HTML page used to clobber good caches)."""
     dest.parent.mkdir(parents=True, exist_ok=True)
     fresh = dest.exists() and (time.time() - dest.stat().st_mtime) < max_age_hours * 3600
     if fresh and not force:
@@ -32,8 +36,12 @@ def download(url: str, dest: Path, max_age_hours: float = 12.0, force: bool = Fa
     try:
         resp = requests.get(url, headers=UA, timeout=30)
         resp.raise_for_status()
-        dest.write_bytes(resp.content)
-    except requests.RequestException as exc:
+        if validator is not None:
+            validator(resp.content)  # raises on garbage → handled below, old cache kept
+        tmp = dest.with_suffix(dest.suffix + ".tmp")
+        tmp.write_bytes(resp.content)
+        os.replace(tmp, dest)
+    except (requests.RequestException, ValueError, Exception) as exc:
         if dest.exists():
             age_h = (time.time() - dest.stat().st_mtime) / 3600
             print(f"WARNING: download failed ({exc}); using cache {dest.name} ({age_h:.0f}h old)")
@@ -42,9 +50,15 @@ def download(url: str, dest: Path, max_age_hours: float = 12.0, force: bool = Fa
     return dest
 
 
+def _csv_validator(body: bytes) -> None:
+    if not body.startswith(b"date,home_team,away_team"):
+        raise ValueError("results.csv body does not look like the dataset")
+
+
 def load_results(force: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Return (played, upcoming). Played: scores int, chronological. Upcoming: NA-score rows."""
-    path = download(RESULTS_URL, DATA_DIR / "results.csv", force=force)
+    path = download(RESULTS_URL, DATA_DIR / "results.csv", force=force,
+                    validator=_csv_validator)
     df = pd.read_csv(path, na_values=["NA"])
     df["date"] = pd.to_datetime(df["date"])
     df["neutral"] = df["neutral"].astype(bool)

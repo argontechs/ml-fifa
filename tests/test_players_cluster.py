@@ -107,3 +107,23 @@ def test_fit_by_group_clusters_each_position_separately():
     # names carry their role prefix and exist for every label
     assert set(labels) == set(names)
     assert all(n.split(" · ")[0] in ("DF", "MF", "FW") for n in names.values())
+
+
+def test_fallback_labels_are_human_not_debug():
+    name = cluster.label_for(("conv", "sot_pct", "off90"), group="MF")
+    for raw in ("conv", "sot_pct", "off90", "npg90", "_"):
+        assert raw not in name, name
+    assert name[0].isupper()
+
+
+def test_archetype_registry_keeps_names_stable_across_builds(tmp_path):
+    reg = tmp_path / "registry.json"
+    df = _one_position_styles(n_per=50)
+    X1, m1 = features.build_matrix(df)
+    l1, n1 = cluster.fit_by_group(X1, m1, k_range=range(3, 5), seed=42,
+                                  registry_path=reg)
+    # second build: same data, different seed → centroids jitter, names must hold
+    X2, m2 = features.build_matrix(df)
+    l2, n2 = cluster.fit_by_group(X2, m2, k_range=range(3, 5), seed=7,
+                                  registry_path=reg)
+    assert set(n1.values()) == set(n2.values())
