@@ -47,7 +47,7 @@ def _extract_text(raw: str) -> str | None:
     return text if isinstance(text, str) and text.strip() else None
 
 
-async def consume(source, conn, windows_fn, clock=time.time) -> int:
+async def consume(source, conn, windows_fn, clock=time.time, source_tag="bsky") -> int:
     """Drain `source` (async iterator of raw Jetstream JSON). Returns posts stored."""
     stored = 0
     async for raw in source:
@@ -57,7 +57,7 @@ async def consume(source, conn, windows_fn, clock=time.time) -> int:
         for match, kwsets in windows_fn():
             side = route(text, kwsets)
             if side is not None:
-                db.insert_post(conn, ts=clock(), source="bsky",
+                db.insert_post(conn, ts=clock(), source=source_tag,
                                match_key=match["key"], side=side, text=text)
                 stored += 1
     return stored

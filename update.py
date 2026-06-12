@@ -97,20 +97,9 @@ except Exception as exc:  # noqa: BLE001
 print(f"rendered → {out_dir}/index.html + past.html + sentiment.html")
 
 import os
-import subprocess
 
 if os.environ.get("DASH_DEPLOY", "1") != "0":
     print("7/7 deploying to Cloudflare Pages…")
-    try:
-        env = dict(os.environ)
-        token_file = data.DATA_DIR / "cf_token.txt"
-        if token_file.exists():
-            env["CLOUDFLARE_API_TOKEN"] = token_file.read_text().strip()
-            env["CLOUDFLARE_ACCOUNT_ID"] = "6c51b7a0e7b4980a0d5897c365ddc36e"
-        subprocess.run(
-            ["npx", "--yes", "wrangler", "pages", "deploy", str(out_dir),
-             "--project-name", "wc2026", "--branch", "main", "--commit-dirty=true"],
-            check=True, timeout=300, cwd=Path(__file__).resolve().parent, env=env,
-        )
-    except Exception as exc:  # noqa: BLE001 — deploys must never block the local refresh
-        print(f"WARNING: deploy skipped ({exc})")
+    from fifa.deploy import deploy_dashboard
+
+    deploy_dashboard()

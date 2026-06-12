@@ -13,7 +13,7 @@ from . import aggregate, db, viz
 def render(conn, generated_at: str) -> str:
     matches = conn.execute(
         "SELECT m.match_key, m.home, m.away FROM matches m "
-        "WHERE EXISTS (SELECT 1 FROM posts p WHERE p.match_key = m.match_key) "
+        "WHERE EXISTS (SELECT 1 FROM posts p WHERE p.match_key = m.match_key AND p.source != 'replay') "
         "ORDER BY m.match_key DESC"
     ).fetchall()
     sections = []

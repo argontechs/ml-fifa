@@ -18,3 +18,14 @@ def test_publish_empty_state(tmp_path):
     conn = db.connect(tmp_path / "s.db")
     html = publish.render(conn, "now")
     assert "No sentiment data collected yet" in html
+
+
+def test_replay_data_never_published(tmp_path):
+    conn = db.connect(tmp_path / "s.db")
+    db.upsert_match(conn, 1, "Mexico", "South Africa", "2026-06-11", "2-0")
+    db.insert_post(conn, 1.0, "replay", 1, "home", "synthetic demo post")
+    from sentiment import scorer
+    scorer.run_once(conn, stub_model)
+    html = publish.render(conn, "now")
+    assert "Mexico vs South Africa" not in html  # synthetic data must never look real
+    assert "No sentiment data collected yet" in html

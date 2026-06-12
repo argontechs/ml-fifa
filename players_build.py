@@ -33,17 +33,6 @@ out.write_text(html)
 print(f"done → {out}")
 
 if args.deploy:
-    import os
-    import subprocess
+    from fifa.deploy import deploy_dashboard
 
-    from fifa import data
-
-    env = dict(os.environ)
-    token_file = data.DATA_DIR / "cf_token.txt"
-    if token_file.exists():
-        env["CLOUDFLARE_API_TOKEN"] = token_file.read_text().strip()
-        env["CLOUDFLARE_ACCOUNT_ID"] = "6c51b7a0e7b4980a0d5897c365ddc36e"
-    subprocess.run(["npx", "--yes", "wrangler", "pages", "deploy", "dashboard",
-                    "--project-name", "wc2026", "--branch", "main", "--commit-dirty=true"],
-                   check=True, timeout=300, env=env,
-                   cwd=Path(__file__).resolve().parent)
+    deploy_dashboard()

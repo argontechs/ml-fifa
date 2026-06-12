@@ -60,7 +60,8 @@ async def main():
             return t0 + ticker["i"] * 45.0  # one post ≈ every 45s → ~90 min span
 
         stored = await collector.consume(replay_source(args.replay, args.speed), conn,
-                                         windows_fn=lambda: windows, clock=replay_clock)
+                                         windows_fn=lambda: windows, clock=replay_clock,
+                                         source_tag="replay")
         print(f"replay done — {stored} posts stored in {DB_PATH}")
         return
     print("collector running — Ctrl-C to stop")
