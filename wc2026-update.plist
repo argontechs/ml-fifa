@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.brendan.wc2026-update</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/zsh</string>
+        <string>/Users/brendxn___/Desktop/ML-FIFA/run-update.sh</string>
+    </array>
+    <!-- every 3 hours: scoreboard, tracker and odds stay fresh through each matchday -->
+    <key>StartInterval</key>
+    <integer>10800</integer>
+    <key>RunAtLoad</key>
+    <false/>
+    <key>WorkingDirectory</key>
+    <string>/Users/brendxn___/Desktop/ML-FIFA</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/brendxn___/.nvm/versions/node/v24.4.1/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+    </dict>
+    <key>StandardErrorPath</key>
+    <string>/Users/brendxn___/Desktop/ML-FIFA/data/launchd-err.log</string>
+</dict>
+</plist>
