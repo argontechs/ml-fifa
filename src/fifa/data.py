@@ -39,3 +39,28 @@ def download(url: str, dest: Path, max_age_hours: float = 12.0, force: bool = Fa
         else:
             raise RuntimeError(f"Cannot download {url} and no cache at {dest}") from exc
     return dest
+
+
+def load_results(force: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Return (played, upcoming). Played: scores int, chronological. Upcoming: NA-score rows."""
+    path = download(RESULTS_URL, DATA_DIR / "results.csv", force=force)
+    df = pd.read_csv(path, na_values=["NA"])
+    df["date"] = pd.to_datetime(df["date"])
+    df["neutral"] = df["neutral"].astype(bool)
+    for col in ("home_team", "away_team"):
+        df[col] = df[col].replace(SUCCESSORS)
+    upcoming = df[df["home_score"].isna()].copy().reset_index(drop=True)
+    played = df.dropna(subset=["home_score", "away_score"]).copy()
+    played["home_score"] = played["home_score"].astype(int)
+    played["away_score"] = played["away_score"].astype(int)
+    played = played.sort_values("date", kind="stable").reset_index(drop=True)
+    return played, upcoming
+
+
+def load_shootouts(force: bool = False) -> pd.DataFrame:
+    path = download(SHOOTOUTS_URL, DATA_DIR / "shootouts.csv", force=force)
+    df = pd.read_csv(path)
+    df["date"] = pd.to_datetime(df["date"])
+    for col in ("home_team", "away_team", "winner"):
+        df[col] = df[col].replace(SUCCESSORS)
+    return df

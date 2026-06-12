@@ -59,3 +59,23 @@ def test_download_raises_without_cache(tmp_path, monkeypatch):
     monkeypatch.setattr(data.requests, "get", fake_get)
     with pytest.raises(RuntimeError, match="no cache"):
         data.download("http://u", tmp_path / "missing.csv")
+
+
+SAMPLE_CSV = """date,home_team,away_team,home_score,away_score,tournament,city,country,neutral
+1994-06-17,Germany,Bolivia,1,0,FIFA World Cup,Chicago,United States,TRUE
+1992-03-25,Yugoslavia,Netherlands,2,0,Friendly,Amsterdam,Netherlands,FALSE
+2026-06-13,United States,Paraguay,NA,NA,FIFA World Cup,Los Angeles,United States,FALSE
+"""
+
+
+def test_load_results_splits_and_maps(tmp_path, monkeypatch):
+    f = tmp_path / "results.csv"
+    f.write_text(SAMPLE_CSV)
+    monkeypatch.setattr(data, "download", lambda url, dest, **kw: f)
+    played, upcoming = data.load_results()
+    assert len(played) == 2 and len(upcoming) == 1
+    assert played["home_score"].dtype.kind == "i"
+    assert "Serbia" in set(played["home_team"])  # Yugoslavia mapped
+    assert list(played["date"]) == sorted(played["date"])  # chronological
+    assert bool(played.iloc[1]["neutral"]) is True  # 1994 row is second after sort
+    assert upcoming.iloc[0]["home_team"] == "United States"
