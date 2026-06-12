@@ -44,15 +44,39 @@ def test_build_matrix_filters_and_scales_by_position():
         assert abs(grp["tklw90"].mean()) < 0.2
 
 
+def _one_position_styles(n_per=60):
+    """Three style blobs WITHIN one position group — position-grouped scaling preserves
+    within-group structure (between-group structure is removed by design)."""
+    rows = []
+    styles = {
+        "fin": {"npg90": 0.7, "sh90": 3.5, "ast90": 0.1, "crs90": 0.5, "tklw90": 0.3, "int90": 0.2},
+        "cre": {"npg90": 0.1, "sh90": 1.0, "ast90": 0.5, "crs90": 4.0, "tklw90": 0.8, "int90": 0.6},
+        "win": {"npg90": 0.02, "sh90": 0.3, "ast90": 0.05, "crs90": 0.4, "tklw90": 2.5, "int90": 2.2},
+    }
+    for style, mus in styles.items():
+        for i in range(n_per):
+            row = {c: 0.0 for c in CANONICAL}
+            for k, mu in mus.items():
+                row[k] = max(0, RNG.normal(mu, mu * 0.15 + 0.02))
+            row.update({"sot_pct": RNG.normal(35, 5), "conv": RNG.normal(0.1, 0.03),
+                        "fld90": RNG.normal(1, 0.2), "fls90": RNG.normal(1, 0.2),
+                        "off90": 0.2, "card90": 0.2,
+                        "player": f"{style}{i}", "team": "T", "nation": "France",
+                        "pos": "MF", "age": "25", "minutes": 2000, "nineties": 22.0})
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def test_cluster_recovers_styles_and_names_them():
-    df = _players()
+    df = _one_position_styles()
     X, meta = features.build_matrix(df)
     res = cluster.fit(X, k_range=range(3, 7), seed=42)
     assert res["k"] == 3
     # purity: each true style maps overwhelmingly to one cluster
-    lab = pd.Series(res["labels"], index=meta["pos"].to_numpy())
-    for pos in ("FW", "MF", "DF"):
-        counts = lab[lab.index == pos].value_counts(normalize=True)
+    style = meta["player"].str[:3].to_numpy()
+    lab = pd.Series(res["labels"], index=style)
+    for s in ("fin", "cre", "win"):
+        counts = lab[lab.index == s].value_counts(normalize=True)
         assert counts.iloc[0] > 0.9
     names = cluster.name_clusters(res["centers"], list(X.columns))
     assert len(names) == 3 and all(isinstance(n, str) and n for n in names.values())
