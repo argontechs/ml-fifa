@@ -1,0 +1,12 @@
+[Unit]
+Description=WC2026 sentiment scorer (multilingual transformer)
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/wc2026
+ExecStart=/opt/wc2026/.venv/bin/python sentiment_score.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

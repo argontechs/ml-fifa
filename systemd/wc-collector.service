@@ -1,0 +1,12 @@
+[Unit]
+Description=WC2026 sentiment collector (Bluesky firehose + goal polling)
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/wc2026
+ExecStart=/opt/wc2026/.venv/bin/python sentiment_collect.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
