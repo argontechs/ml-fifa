@@ -48,7 +48,8 @@ def load_fixtures(force: bool = False) -> pd.DataFrame:
         rows.append({
             "match_number": m["MatchNumber"],
             "round": m["RoundNumber"],
-            "date": pd.to_datetime(m["DateUtc"]),
+            # naive UTC — the rest of the system (results.csv dates) is tz-naive
+            "date": pd.to_datetime(m["DateUtc"]).tz_localize(None),
             "location": m["Location"],
             "host": host,
             "home": home,

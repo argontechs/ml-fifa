@@ -15,6 +15,7 @@ def test_parse_feed_statuses_and_names(monkeypatch):
     assert fx.loc[1, "home"] == "Brazil"
     assert fx.loc[0, "group"] == "A"
     assert pd.api.types.is_datetime64_any_dtype(fx["date"])
+    assert fx["date"].dt.tz is None  # naive UTC, consistent with results.csv dates
 
 
 def test_neutrality_and_host_nations(monkeypatch):
