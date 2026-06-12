@@ -111,6 +111,48 @@ def test_simulate_tournament_deterministic_and_sane():
 import pytest  # noqa: E402
 
 
+def _fixtures_with_knockouts():
+    """Group fixtures all played-deterministic + knockout rows in three states:
+    real-played (M73), real-unplayed (M74), still-tbd (everything else)."""
+    fx = _full_fixtures()
+    fx["home_score"], fx["away_score"], fx["status"] = 2, 0, "played"  # groups decided
+    ko_rows = []
+    for mn in list(tournament.R32_SEEDS) + sorted(tournament.CHAIN):
+        ko_rows.append({
+            "match_number": mn, "round": 4 if mn <= 88 else 5,
+            "date": pd.Timestamp("2026-06-29"), "location": "x",
+            "host": "United States", "home": "1A", "away": "2B", "group": None,
+            "home_score": None, "away_score": None, "status": "tbd",
+            "neutral": True, "winner": None,
+        })
+    ko = pd.DataFrame(ko_rows)
+    # M73 (real seeds 2A v 2B): announced AND played — A2 won on pens (level score)
+    ko.loc[ko["match_number"] == 73,
+           ["home", "away", "home_score", "away_score", "status", "winner"]] = \
+        ["A2", "B2", 1, 1, "played", "A2"]
+    # M74: announced pairing, not yet played — E1 v C3 per the real bracket
+    ko.loc[ko["match_number"] == 74, ["home", "away", "status"]] = ["E1", "C3", "upcoming"]
+    return pd.concat([fx, ko], ignore_index=True)
+
+
+def test_knockout_passthrough_uses_real_pairings_and_winners():
+    fx = _fixtures_with_knockouts()
+    elos = {t: 1500 for g in "ABCDEFGHIJKL" for t in [f"{g}{i}" for i in range(1, 5)]}
+    res = tournament.simulate_tournament(fx, FixedPredictor(), elos, n_runs=80, seed=3)
+    # M73 was decided on pens for A2: the pens loser B2 must NEVER pass the R32
+    assert res.loc["B2", "r16"] == 0.0
+    assert res.loc["A2", "r16"] == 1.0  # real winner always advances
+    # M74's announced pairing (E1 v C3) is used verbatim: both appear in R32 every run
+    assert res.loc["E1", "r32"] == 1.0 and res.loc["C3", "r32"] == 1.0
+
+
+def test_knockout_tbd_rows_still_simulated_from_seeds():
+    fx = _full_fixtures()  # no knockout rows at all → seeds path (legacy behavior)
+    elos = {t: 1500 for g in "ABCDEFGHIJKL" for t in [f"{g}{i}" for i in range(1, 5)]}
+    res = tournament.simulate_tournament(fx, FixedPredictor(), elos, n_runs=40, seed=3)
+    assert res["champion"].sum() == pytest.approx(1.0)
+
+
 def test_pens_prob_favors_strong_shootout_record():
     tbl = {"Germany": (8, 8), "England": (1, 8)}  # (wins, total)
     p = tournament.pens_prob("Germany", "England", tbl, {"Germany": 1900, "England": 1900})

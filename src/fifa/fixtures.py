@@ -46,6 +46,8 @@ def load_fixtures(force: bool = False, max_age_hours: float = 6.0) -> pd.DataFra
         home_score, away_score = m["HomeTeamScore"], m["AwayTeamScore"]
         played = home_score is not None and away_score is not None
         host = _host_of(m["Location"])
+        w_raw = m.get("Winner") or ""
+        winner = data.normalize_team(w_raw) if w_raw and not data.is_placeholder(w_raw) else None
         if away == host and not tbd:
             # FIFA lists the host as the designated away side in a few fixtures; our
             # models grant home advantage to the home column — swap so the host gets
@@ -65,6 +67,7 @@ def load_fixtures(force: bool = False, max_age_hours: float = 6.0) -> pd.DataFra
             "home_score": home_score,
             "away_score": away_score,
             "status": "tbd" if tbd else ("played" if played else "upcoming"),
+            "winner": winner,
             "neutral": home != host,
         })
     return pd.DataFrame(rows).sort_values("match_number").reset_index(drop=True)

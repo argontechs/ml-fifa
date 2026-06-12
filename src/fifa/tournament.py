@@ -187,11 +187,13 @@ def simulate_groups(fixtures, predictor, n_runs=10000, seed=0) -> dict:
     }
 
 
-def _assign_thirds(qualified, rng, max_tries=200):
-    """Assign the 8 qualified thirds (by group letter) to the 8 third-slots so that
-    each slot's team comes from its candidate set. Random valid assignment."""
-    slots = [(mn, seed) for mn, pair in R32_SEEDS.items() for seed in pair
-             if seed.startswith("3")]
+def _assign_thirds(qualified, rng, max_tries=200, slots=None):
+    """Assign qualified thirds (by group letter) to third-slots so that each slot's
+    team comes from its candidate set. Random valid assignment. `slots` defaults to
+    all eight third-slots; passthrough passes only the still-unannounced ones."""
+    if slots is None:
+        slots = [(mn, seed) for mn, pair in R32_SEEDS.items() for seed in pair
+                 if seed.startswith("3")]
     by_group = dict(qualified)  # group letter → team
     letters = list(by_group)
     for _ in range(max_tries):
@@ -257,6 +259,23 @@ def simulate_tournament(fixtures, predictor, elo_ratings, n_runs=10000, seed=0,
     rng = np.random.default_rng(seed)
     counters: dict[str, dict[str, int]] = {}
 
+    # Knockout passthrough: once the feed publishes real pairings/results (June 28+),
+    # they override simulation — eliminated teams must show zero champion odds.
+    ko_rows: dict[int, object] = {}
+    if "round" in fixtures.columns:
+        for kr in fixtures[fixtures["round"] >= 4].itertuples(index=False):
+            if kr.status != "tbd":
+                ko_rows[int(kr.match_number)] = kr
+
+    def settle(row, t1, t2):
+        if row is not None and row.status == "played":
+            w = getattr(row, "winner", None)
+            if isinstance(w, str) and w in (t1, t2):
+                return w  # feed's Winner field — correct even for pens-decided games
+            if not pd.isna(row.home_score) and row.home_score != row.away_score:
+                return t1 if row.home_score > row.away_score else t2
+        return _knockout_match(t1, t2, predictor, rng, elo_ratings, pens_tbl)
+
     def bump(team, stage):
         counters.setdefault(team, {}).setdefault(stage, 0)
         counters[team][stage] += 1
@@ -264,8 +283,16 @@ def simulate_tournament(fixtures, predictor, elo_ratings, n_runs=10000, seed=0,
     for _ in range(n_runs):
         standings, thirds = _play_group_stage(fixtures, predictor, rng)
         qualified_set = set(best_thirds(thirds, rng))
-        qualified = [(g, standings[g][2]) for g in standings if standings[g][2] in qualified_set]
-        third_assignment = _assign_thirds(qualified, rng)
+        # teams already consumed by REAL announced pairings must leave the seed pool,
+        # or they could be dealt into a second R32 slot in the same run
+        consumed = {team for mn in R32_SEEDS if mn in ko_rows
+                    for team in (ko_rows[mn].home, ko_rows[mn].away)}
+        qualified = [(g, standings[g][2]) for g in standings
+                     if standings[g][2] in qualified_set
+                     and standings[g][2] not in consumed]
+        open_slots = [(mn, seed) for mn, pair in R32_SEEDS.items() if mn not in ko_rows
+                      for seed in pair if seed.startswith("3")]
+        third_assignment = _assign_thirds(qualified, rng, slots=open_slots)
 
         def resolve(seed_token, match_no):
             kind, rest = seed_token[0], seed_token[1:]
@@ -277,17 +304,25 @@ def simulate_tournament(fixtures, predictor, elo_ratings, n_runs=10000, seed=0,
 
         winners: dict[int, str] = {}
         for mn, (s1, s2) in R32_SEEDS.items():
-            t1, t2 = resolve(s1, mn), resolve(s2, mn)
+            row = ko_rows.get(mn)
+            if row is not None:
+                t1, t2 = row.home, row.away  # real announced pairing
+            else:
+                t1, t2 = resolve(s1, mn), resolve(s2, mn)
             bump(t1, "r32")
             bump(t2, "r32")
-            winners[mn] = _knockout_match(t1, t2, predictor, rng, elo_ratings, pens_tbl)
+            winners[mn] = settle(row, t1, t2)
         for mn in sorted(CHAIN):
+            row = ko_rows.get(mn)
             a, b = CHAIN[mn]
-            t1, t2 = winners[a], winners[b]
+            if row is not None:
+                t1, t2 = row.home, row.away
+            else:
+                t1, t2 = winners[a], winners[b]
             stage = STAGE_OF[mn]
             bump(t1, stage)
             bump(t2, stage)
-            winners[mn] = _knockout_match(t1, t2, predictor, rng, elo_ratings, pens_tbl)
+            winners[mn] = settle(row, t1, t2)
         bump(winners[104], "champion")
 
     teams = sorted(counters)
