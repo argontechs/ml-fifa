@@ -2759,6 +2759,11 @@ def fetch_book(force: bool = False) -> dict:
     if not key:
         print("NOTE: no ODDS_API_KEY — predictions are model-only")
         return {}
+    cache = data.DATA_DIR / "odds_cache.json"
+    # 6h cache: repeated runs spend ZERO credits (each live fetch costs 2 of 500/mo)
+    import time
+    if not force and cache.exists() and time.time() - cache.stat().st_mtime < 6 * 3600:
+        return parse_feed(json.loads(cache.read_text()))
     try:
         import requests
         resp = requests.get(URL, params={"apiKey": key, "regions": "eu,uk", "markets": "h2h"},
