@@ -1,0 +1,157 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WC26 Predictor · Past matches</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%E2%9A%BD%3C/text%3E%3C/svg%3E"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet"><style>
+:root{
+  --pitch:#0a0e0b; --panel:#10160f; --panel2:#141b12; --line:#222b1e;
+  --ink:#e9eee4; --dim:#7d8a74; --faint:#48543f;
+  --volt:#b8f53d; --volt-dim:#6f9420;
+  --win:#b8f53d; --draw:#5b6878; --loss:#f0573f;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1200px 500px at 50% -200px, rgba(184,245,61,.07), transparent 70%),
+    repeating-linear-gradient(90deg, transparent 0 110px, rgba(255,255,255,.013) 110px 220px),
+    var(--pitch);
+  color:var(--ink);
+  font-family:'IBM Plex Mono',ui-monospace,monospace;
+  font-size:13px; line-height:1.45;
+  max-width:1080px; margin:0 auto; padding:2.2rem 1.2rem 4rem;
+}
+h1,h2,.team,.hero{font-family:'Saira Condensed','Arial Narrow',sans-serif}
+h1{font-size:2.4rem;letter-spacing:.04em;text-transform:uppercase;line-height:1}
+h1 .dot{color:var(--volt)}
+.sub{color:var(--dim);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-top:.35rem}
+h2{font-size:1.25rem;letter-spacing:.12em;text-transform:uppercase;margin:3rem 0 1rem;
+   display:flex;align-items:center;gap:.7rem;color:var(--ink)}
+h2::after{content:"";flex:1;height:1px;background:var(--line)}
+.ticker{margin-top:1.4rem;border:1px solid var(--line);border-left:3px solid var(--volt);
+  background:var(--panel);padding:.75rem 1rem;color:var(--dim);font-size:11.5px;border-radius:4px}
+.ticker b{color:var(--volt)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);
+  border-radius:6px;padding:1rem 1.1rem;animation:rise .45s both}
+.card:hover{border-color:var(--volt-dim)}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}}
+.grid .card:nth-child(2){animation-delay:.05s}.grid .card:nth-child(3){animation-delay:.1s}
+.grid .card:nth-child(4){animation-delay:.15s}.grid .card:nth-child(5){animation-delay:.2s}
+.grid .card:nth-child(6){animation-delay:.25s}.grid .card:nth-child(n+7){animation-delay:.3s}
+.meta{display:flex;justify-content:space-between;align-items:center;color:var(--dim);
+  font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
+.badge{font-weight:600;font-size:10px;padding:.18rem .55rem;border-radius:3px;letter-spacing:.12em}
+.badge.LOCK{background:var(--volt);color:#10160f}
+.badge.STRONG{background:#1e3a4d;color:#7ec8e2}
+.badge.LEAN{background:#46401c;color:#e2cb7e}
+.badge.TOSS-UP{background:#4d211c;color:#f0998c}
+.face{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:.8rem;margin:.8rem 0 .2rem}
+.side{display:flex;flex-direction:column;align-items:center;gap:.3rem;min-width:0}
+.side img{width:34px;height:auto;border-radius:2px;box-shadow:0 0 0 1px var(--line)}
+.team{font-size:1.05rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  text-align:center;line-height:1.1}
+.hero{font-size:3.4rem;font-weight:700;letter-spacing:.02em;line-height:.9;color:var(--ink);
+  text-shadow:0 0 24px rgba(184,245,61,.25)}
+.hero .dash{color:var(--faint);padding:0 .05em}
+.ctx{color:var(--dim);font-size:10.5px;text-align:center}
+.ctx .up{color:var(--volt)} .ctx .dn{color:var(--loss)}
+.dots{letter-spacing:.18em;font-size:10px}
+.dots .w{color:var(--win)}.dots .d{color:var(--draw)}.dots .l{color:var(--loss)}
+.bar{display:flex;height:16px;border-radius:3px;overflow:hidden;margin:.7rem 0 .45rem;
+  font-size:9.5px;font-weight:600;color:#0c1209}
+.bar div{display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap}
+.bar .w{background:var(--win)} .bar .d{background:var(--draw);color:#d6dde6}
+.bar .l{background:var(--loss);color:#2b0d08}
+.chips{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
+.chip{border:1px solid var(--line);border-radius:3px;padding:.12rem .45rem;color:var(--dim);font-size:10.5px}
+.chip.first{border-color:var(--volt-dim);color:var(--volt)}
+.mkt{color:var(--faint);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;margin-top:.55rem}
+.tally{display:flex;gap:2.2rem;margin:.4rem 0 1rem;flex-wrap:wrap}
+.tally .num{font-family:'Saira Condensed';font-size:2.2rem;font-weight:700;color:var(--volt);line-height:1}
+.tally .lbl{color:var(--dim);font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+table{border-collapse:collapse;width:100%;font-size:12px}
+td,th{padding:.4rem .55rem;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--faint);font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:400}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tick{color:var(--volt);font-weight:600}.cross{color:var(--loss);font-weight:600}
+.ggrid{display:grid;grid-template-columns:repeat(3,1fr);gap:.9rem}
+@media(max-width:900px){.ggrid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.ggrid{grid-template-columns:1fr}}
+.gcard{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:.7rem .8rem}
+.gcard h3{font-family:'Saira Condensed';font-size:1rem;letter-spacing:.16em;color:var(--volt);
+  text-transform:uppercase;margin-bottom:.4rem}
+.grow{display:grid;grid-template-columns:auto 1fr repeat(3,2rem) 2.1rem 3rem;gap:.3rem;
+  align-items:center;padding:.22rem 0;font-size:11px;
+  border-bottom:1px solid rgba(255,255,255,.03);font-variant-numeric:tabular-nums}
+.grow img{width:18px;border-radius:1px}
+.grow .c{color:var(--dim);text-align:right}
+.grow .pts{color:var(--ink);font-weight:600;text-align:right}
+.grow .adv{color:var(--dim);font-size:10px;text-align:right}
+.grow.q .adv{color:var(--volt)}
+.grow.hd{color:var(--faint);font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+  border-bottom:1px solid var(--line)}
+.grow.hd span{text-align:right}.grow.hd .nm{text-align:left}
+.cbar{display:grid;grid-template-columns:9rem 1fr 3.4rem;gap:.6rem;align-items:center;
+  padding:.28rem 0;font-size:12px}
+.cbar .fill{height:13px;border-radius:2px;background:linear-gradient(90deg,var(--volt-dim),var(--volt));
+  box-shadow:0 0 12px rgba(184,245,61,.25);animation:grow .8s both}
+@keyframes grow{from{transform:scaleX(0);transform-origin:left}}
+.cbar .pc{color:var(--volt);text-align:right;font-variant-numeric:tabular-nums}
+.cbar .nm{display:flex;align-items:center;gap:.45rem}.cbar img{width:20px;border-radius:1px}
+footer{margin-top:3.5rem;color:var(--faint);font-size:10.5px;line-height:1.8}
+footer a{color:var(--dim)}
+nav{display:flex;gap:1.4rem;margin-top:1.2rem;font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase}
+nav a{color:var(--dim);text-decoration:none;padding-bottom:.25rem}
+nav a.on{color:var(--volt);border-bottom:2px solid var(--volt)}
+nav a:hover{color:var(--ink)}
+.retro{font-size:9px;letter-spacing:.12em;color:var(--faint);border:1px solid var(--line);
+  border-radius:3px;padding:.14rem .4rem;margin-left:.4rem;text-transform:uppercase}
+.duo{display:flex;flex-direction:column;align-items:center;gap:.15rem}
+.lbl2{color:var(--faint);font-size:9px;letter-spacing:.18em;text-transform:uppercase}
+.hero.dim{font-size:1.6rem;color:var(--dim);text-shadow:none}
+.hero.hit{color:var(--volt)} .hero.miss{color:var(--loss);text-shadow:none}
+.verdict{display:flex;gap:1.2rem;margin-top:.55rem;font-size:10.5px;color:var(--dim);
+  letter-spacing:.1em;text-transform:uppercase}
+</style></head><body>
+<header>
+<h1>WC26<span class="dot">·</span>Predictor</h1>
+<div class="sub">past matches · prediction vs full time · generated 2026-06-12 08:05 UTC</div>
+<nav><a href="index.html" class="">Upcoming</a><a href="past.html" class="on">Past matches</a></nav>
+<div class="ticker"><b>Reading this honestly:</b> picks frozen before kickoff are unmarked;
+<b>RETRO</b> rows are walk-forward backtest predictions for matches played before this system
+existed (model refit on data strictly before that matchday — never trained on the result, never
+using bookmaker odds).</div>
+</header>
+<div class="tally" style="margin-top:1.6rem">
+<div><div class="num">2/2</div><div class="lbl">outcomes</div></div>
+<div><div class="num">0/2</div><div class="lbl">exact scores</div></div>
+<div><div class="num">—</div><div class="lbl">lock picks</div></div>
+</div>
+<div class="grid"><div class="card">
+<div class="meta"><span></span>
+<span><span class="badge TOSS-UP">TOSS-UP</span><span class="retro">retro</span></span></div>
+<div class="face"><div class="side"><img src="https://flagcdn.com/w40/kr.png" alt="South Korea" loading="lazy"><div class="team">South Korea</div></div>
+<div class="duo"><div class="lbl2">predicted</div>
+<div class="hero dim">1<span class="dash">–</span>1</div>
+<div class="lbl2">full time</div>
+<div class="hero hit">2<span class="dash">–</span>1</div></div>
+<div class="side"><img src="https://flagcdn.com/w40/cz.png" alt="Czech Republic" loading="lazy"><div class="team">Czech Republic</div></div></div>
+<div class="bar"><div class="w" style="width:42.1%">W 42%</div><div class="d" style="width:22.6%">D 23%</div><div class="l" style="width:35.3%">L 35%</div></div>
+<div class="verdict"><span>outcome <span class="tick">✓</span></span>
+<span>exact score <span class="cross">✗</span></span></div>
+</div>
+<div class="card">
+<div class="meta"><span></span>
+<span><span class="badge STRONG">STRONG</span><span class="retro">retro</span></span></div>
+<div class="face"><div class="side"><img src="https://flagcdn.com/w40/mx.png" alt="Mexico" loading="lazy"><div class="team">Mexico</div></div>
+<div class="duo"><div class="lbl2">predicted</div>
+<div class="hero dim">1<span class="dash">–</span>0</div>
+<div class="lbl2">full time</div>
+<div class="hero hit">2<span class="dash">–</span>0</div></div>
+<div class="side"><img src="https://flagcdn.com/w40/za.png" alt="South Africa" loading="lazy"><div class="team">South Africa</div></div></div>
+<div class="bar"><div class="w" style="width:68.5%">W 68%</div><div class="d" style="width:19.4%">D 19%</div><div class="l" style="width:12.1%">12%</div></div>
+<div class="verdict"><span>outcome <span class="tick">✓</span></span>
+<span>exact score <span class="cross">✗</span></span></div>
+</div></div>
+<footer>Back to <a href="index.html">upcoming predictions</a>.</footer>
+</body></html>
