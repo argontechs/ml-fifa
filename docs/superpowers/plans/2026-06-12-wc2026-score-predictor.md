@@ -23,7 +23,7 @@
 **Files:**
 - Create: `requirements.txt`, `pytest.ini`, `src/fifa/__init__.py`, `tests/__init__.py`
 
-- [ ] **Step 1: Write the files**
+- [x] **Step 1: Write the files**
 
 `requirements.txt`:
 ```
@@ -47,12 +47,12 @@ markers =
 
 `src/fifa/__init__.py` and `tests/__init__.py`: empty files.
 
-- [ ] **Step 2: Verify pytest runs**
+- [x] **Step 2: Verify pytest runs**
 
 Run: `.venv/bin/pytest -q`
 Expected: `no tests ran` (exit code 5 is fine).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add requirements.txt pytest.ini src tests
@@ -67,7 +67,7 @@ git commit -m "chore: project skeleton (venv already provisioned)"
 - Create: `src/fifa/data.py`
 - Test: `tests/test_data.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 # tests/test_data.py
@@ -128,12 +128,12 @@ def test_download_raises_without_cache(tmp_path, monkeypatch):
         data.download("http://u", tmp_path / "missing.csv")
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `.venv/bin/pytest tests/test_data.py -q`
 Expected: FAIL — `cannot import name 'data'` / module not found.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```python
 # src/fifa/data.py
@@ -180,12 +180,12 @@ def download(url: str, dest: Path, max_age_hours: float = 12.0, force: bool = Fa
     return dest
 ```
 
-- [ ] **Step 4: Run to verify pass**
+- [x] **Step 4: Run to verify pass**
 
 Run: `.venv/bin/pytest tests/test_data.py -q`
 Expected: 3 passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/fifa/data.py tests/test_data.py
@@ -200,7 +200,7 @@ git commit -m "feat: cached downloader with browser UA and stale-cache fallback"
 - Modify: `src/fifa/data.py` (append)
 - Test: `tests/test_data.py` (append)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 # append to tests/test_data.py
@@ -227,11 +227,11 @@ def test_load_results_splits_and_maps(tmp_path, monkeypatch):
     assert upcoming.iloc[0]["home_team"] == "United States"
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `.venv/bin/pytest tests/test_data.py -q` — Expected: FAIL, `load_results` not defined.
 
-- [ ] **Step 3: Implement (append to `src/fifa/data.py`)**
+- [x] **Step 3: Implement (append to `src/fifa/data.py`)**
 
 ```python
 def load_results(force: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -259,9 +259,9 @@ def load_shootouts(force: bool = False) -> pd.DataFrame:
     return df
 ```
 
-- [ ] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_data.py -q` → all pass.
+- [x] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_data.py -q` → all pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -u && git commit -m "feat: results/shootouts loading with NA-fixture split and successor mapping"
@@ -275,7 +275,7 @@ git add -u && git commit -m "feat: results/shootouts loading with NA-fixture spl
 - Modify: `src/fifa/data.py` (append)
 - Test: `tests/test_data.py` (append)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 # append to tests/test_data.py
@@ -292,9 +292,9 @@ def test_assert_known_raises_with_offenders():
         data.assert_known(["France", "Atlantis"], known)
 ```
 
-- [ ] **Step 2: Run to verify failure** — FAIL, `normalize_team` not defined.
+- [x] **Step 2: Run to verify failure** — FAIL, `normalize_team` not defined.
 
-- [ ] **Step 3: Implement (append to `src/fifa/data.py`)**
+- [x] **Step 3: Implement (append to `src/fifa/data.py`)**
 
 ```python
 # FIFA/fixture-feed names → martj42 dataset names. Identity names omitted.
@@ -330,9 +330,9 @@ def assert_known(names, known_teams) -> None:
         )
 ```
 
-- [ ] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_data.py -q`.
+- [x] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_data.py -q`.
 
-- [ ] **Step 5: Live alias completeness check (one-off, requires network)**
+- [x] **Step 5: Live alias completeness check (one-off, requires network)**
 
 ```bash
 .venv/bin/python - <<'EOF'
@@ -350,7 +350,7 @@ EOF
 
 Expected: `OK`. If it raises, add the printed offenders to `FIFA_ALIASES` (martj42 side is the target spelling — check with `grep <name> data/results.csv`), re-run until OK.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -u && git commit -m "feat: FIFA->dataset team-name alias map with hard-error guard"
@@ -364,7 +364,7 @@ git add -u && git commit -m "feat: FIFA->dataset team-name alias map with hard-e
 - Create: `src/fifa/elo.py`
 - Test: `tests/test_elo.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 # tests/test_elo.py
@@ -409,9 +409,9 @@ def test_2022_final_published_delta_band():
     assert -7 < delta < -4
 ```
 
-- [ ] **Step 2: Run to verify failure** — `.venv/bin/pytest tests/test_elo.py -q` → import error.
+- [x] **Step 2: Run to verify failure** — `.venv/bin/pytest tests/test_elo.py -q` → import error.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```python
 # src/fifa/elo.py
@@ -467,9 +467,9 @@ def result_value(home_score: int, away_score: int) -> float:
     return 0.5  # includes shootout matches — scores exclude shootouts by dataset design
 ```
 
-- [ ] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_elo.py -q`.
+- [x] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_elo.py -q`.
 
-- [ ] **Step 5: Pin the 2022-final validation to exact published values (network one-off)**
+- [x] **Step 5: Pin the 2022-final validation to exact published values (network one-off)**
 
 ```bash
 curl -s https://www.eloratings.net/2022_results.tsv | grep -i "argentina.*france" | tail -2
@@ -487,7 +487,7 @@ def test_2022_final_reproduces_published_change():
 
 If the TSV format is unclear, keep the band test and note it in the commit message — do not fabricate values.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -u && git commit -m "feat: Elo formulas (expectancy, K tiers, margin multiplier) validated against published values"
@@ -501,7 +501,7 @@ git add -u && git commit -m "feat: Elo formulas (expectancy, K tiers, margin mul
 - Modify: `src/fifa/elo.py` (append)
 - Test: `tests/test_elo.py` (append)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 # append to tests/test_elo.py
@@ -543,9 +543,9 @@ def test_compute_elo_pre_never_includes_own_match():
     assert out1.loc[2, "elo_home_pre"] == out2.loc[2, "elo_home_pre"]
 ```
 
-- [ ] **Step 2: Run to verify failure** — FAIL, `compute_elo` not defined.
+- [x] **Step 2: Run to verify failure** — FAIL, `compute_elo` not defined.
 
-- [ ] **Step 3: Implement (append to `src/fifa/elo.py`)**
+- [x] **Step 3: Implement (append to `src/fifa/elo.py`)**
 
 ```python
 def compute_elo(
@@ -577,9 +577,9 @@ def compute_elo(
     return out, ratings
 ```
 
-- [ ] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_elo.py -q`.
+- [x] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_elo.py -q`.
 
-- [ ] **Step 5: Real-data sanity run (manual verification, requires network)**
+- [x] **Step 5: Real-data sanity run (manual verification, requires network)**
 
 ```bash
 .venv/bin/python - <<'EOF'
@@ -594,7 +594,7 @@ EOF
 
 Expected: top-10 dominated by Argentina, Spain, France, Brazil, England, Portugal, Netherlands, Germany-tier teams with ratings roughly 1900–2150 (our uniform-1500 init differs from eloratings.net's hand seeds, so values won't match exactly — the *ordering cluster* is the sanity check). If the top 10 contains minnows or ratings explode (>2500), debug before proceeding.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -u && git commit -m "feat: chronological Elo engine with pre/post-match columns"
@@ -608,7 +608,7 @@ git add -u && git commit -m "feat: chronological Elo engine with pre/post-match 
 - Create: `src/fifa/features.py`
 - Test: `tests/test_features.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 # tests/test_features.py
@@ -690,9 +690,9 @@ def test_momentum_and_wc_experience():
     assert last["wc_exp_home"] == 3       # career World Cup finals matches before this game
 ```
 
-- [ ] **Step 2: Run to verify failure** — import error.
+- [x] **Step 2: Run to verify failure** — import error.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```python
 # src/fifa/features.py
@@ -887,9 +887,9 @@ class FeatureBuilder:
         return X
 ```
 
-- [ ] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_features.py -q`.
+- [x] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_features.py -q`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/fifa/features.py tests/test_features.py
@@ -904,7 +904,7 @@ git commit -m "feat: leakage-safe chronological feature builder (Elo, decayed fo
 - Create: `src/fifa/matrix.py`
 - Test: `tests/test_matrix.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 # tests/test_matrix.py
@@ -950,9 +950,9 @@ def test_tier_thresholds():
     assert matrix.tier(0.40) == "TOSS-UP"
 ```
 
-- [ ] **Step 2: Run to verify failure** — import error.
+- [x] **Step 2: Run to verify failure** — import error.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```python
 # src/fifa/matrix.py
@@ -1003,9 +1003,9 @@ def tier(p_max: float) -> str:
     return "TOSS-UP"
 ```
 
-- [ ] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_matrix.py -q`.
+- [x] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_matrix.py -q`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/fifa/matrix.py tests/test_matrix.py
@@ -1026,7 +1026,7 @@ match (home goals, away goals), `sample_weight = exp(−xi·days_before_ref)`. M
 handles identifiability. The DC tau correction is applied later at matrix stage (rho is
 tuned on validation in Task 12) — this two-stage approach avoids a custom MLE.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 # tests/test_dixon_coles.py
@@ -1076,9 +1076,9 @@ def test_unknown_team_falls_back_to_average():
     assert 0.1 < lh < 3.0 and 0.1 < la < 4.0        # finite, sane fallback
 ```
 
-- [ ] **Step 2: Run to verify failure** — import error.
+- [x] **Step 2: Run to verify failure** — import error.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```python
 # src/fifa/dixon_coles.py
@@ -1157,9 +1157,9 @@ row: home-goal obs of match i on row `2i`, away-goal obs on row `2i+1`. The slic
 `6i..6i+2` belong to row `2i`, entries `6i+3..6i+5` to row `2i+1`. The synthetic-recovery
 test will catch any indexing mistake.
 
-- [ ] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_dixon_coles.py -q` (takes ~10–30 s).
+- [x] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_dixon_coles.py -q` (takes ~10–30 s).
 
-- [ ] **Step 5: Real-data smoke (network)**
+- [x] **Step 5: Real-data smoke (network)**
 
 ```bash
 .venv/bin/python - <<'EOF'
@@ -1174,7 +1174,7 @@ EOF
 
 Expected: `home_adv` in ~0.2–0.4 (≈ e^0.3 ≈ 1.35× goals at home); France λ > Senegal λ, both in 0.5–3.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -u && git commit -m "feat: time-decayed Poisson GLM baseline (Dixon-Coles family)"
@@ -1188,7 +1188,7 @@ git add -u && git commit -m "feat: time-decayed Poisson GLM baseline (Dixon-Cole
 - Create: `src/fifa/gbm.py`
 - Test: `tests/test_gbm.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 # tests/test_gbm.py
@@ -1233,9 +1233,9 @@ def test_lambdas_clipped_to_sane_range():
     assert lh.max() <= 8.0 and lh.min() >= 0.05
 ```
 
-- [ ] **Step 2: Run to verify failure** — import error.
+- [x] **Step 2: Run to verify failure** — import error.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```python
 # src/fifa/gbm.py
@@ -1281,9 +1281,9 @@ class GoalModel:
         return lh, la
 ```
 
-- [ ] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_gbm.py -q`.
+- [x] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_gbm.py -q`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/fifa/gbm.py tests/test_gbm.py
@@ -1298,7 +1298,7 @@ git commit -m "feat: twin LightGBM Poisson goal-rate model with time/importance 
 - Create: `src/fifa/evaluate.py`, `src/fifa/ensemble.py`
 - Test: `tests/test_evaluate.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 # tests/test_evaluate.py
@@ -1334,9 +1334,9 @@ def test_report_card_counts_lock_tier():
     assert card["baseline11_rate"] == 0.5
 ```
 
-- [ ] **Step 2: Run to verify failure** — import error.
+- [x] **Step 2: Run to verify failure** — import error.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```python
 # src/fifa/evaluate.py
@@ -1457,9 +1457,9 @@ class Predictor:
         return self.matrix_from_lambdas(dc_l, (float(lh[0]), float(la[0])))
 ```
 
-- [ ] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_evaluate.py -q`.
+- [x] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_evaluate.py -q`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/fifa/evaluate.py src/fifa/ensemble.py tests/test_evaluate.py
@@ -1478,7 +1478,7 @@ Protocol (from spec): train ≤2021-12-31 → tune rho and blend weight on val 2
 refit on train+val → report card on test 2024 – today. Tuned params + card saved to
 `data/backtest_report.json` for predict.py / dashboard reuse.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_backtest_lib.py
@@ -1500,9 +1500,9 @@ def test_grid_pick_minimizes_rps():
     assert len(calls) == 6
 ```
 
-- [ ] **Step 2: Run to verify failure** — import error.
+- [x] **Step 2: Run to verify failure** — import error.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```python
 # src/fifa/backtest_lib.py
@@ -1598,14 +1598,14 @@ print(f"\n=== TEST {result['test_span'][0]} .. {result['test_span'][1]} "
 print(evaluate.format_card(result["test_card"]))
 ```
 
-- [ ] **Step 4: Run unit test** — `.venv/bin/pytest tests/test_backtest_lib.py -q` → pass.
+- [x] **Step 4: Run unit test** — `.venv/bin/pytest tests/test_backtest_lib.py -q` → pass.
 
-- [ ] **Step 5: Full real backtest (the moment of truth — takes minutes; grid is 9×11=99 val evals, each ~3k matches; if too slow, coarsen `RHOS` to step 0.05 and `WS` to step 0.2 first, then refine once around the best cell)**
+- [x] **Step 5: Full real backtest (the moment of truth — takes minutes; grid is 9×11=99 val evals, each ~3k matches; if too slow, coarsen `RHOS` to step 0.05 and `WS` to step 0.2 first, then refine once around the best cell)**
 
 Run: `.venv/bin/python backtest.py`
 Expected: report card prints; **all 5 gates PASS**. Honest bands: W/D/L 50–60%, exact-score 9–13%, RPS 0.19–0.215, LOCK accuracy ≥ 75% with a meaningful lock_n (hundreds — qualifiers contain many mismatches). If exact_rate ≥ 15% or wdl_acc ≥ 65%: STOP, hunt the leak (check feature builder and Elo pre/post columns). If gates fail low (RPS > 0.215): inspect feature importances (`gbm2.home_.feature_importances_`), try GBM-only (w_dc=0) and DC-only (w_dc=1) cards to find which side is weak.
 
-- [ ] **Step 6: Commit (include the JSON report)**
+- [x] **Step 6: Commit (include the JSON report)**
 
 ```bash
 git add -f data/backtest_report.json
@@ -1621,7 +1621,7 @@ git commit -m "feat: walk-forward backtest with val-tuned rho/blend and honesty 
 - Create: `src/fifa/fixtures.py`, `tests/fixtures_sample.json`
 - Test: `tests/test_fixtures.py`
 
-- [ ] **Step 1: Create the sample feed (real shape, 3 matches)**
+- [x] **Step 1: Create the sample feed (real shape, 3 matches)**
 
 ```json
 // tests/fixtures_sample.json
@@ -1642,7 +1642,7 @@ git commit -m "feat: walk-forward backtest with val-tuned rho/blend and honesty 
 strings differ, fix the sample to match reality in Step 5 — the sample must mirror the
 real feed, never the other way around.)
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```python
 # tests/test_fixtures.py
@@ -1671,7 +1671,7 @@ def test_neutrality_host_nations(monkeypatch):
     assert bool(fx.loc[1, "neutral"]) is True   # Brazil in New York
 ```
 
-- [ ] **Step 3: Run to verify failure**, then implement:
+- [x] **Step 3: Run to verify failure**, then implement:
 
 ```python
 # src/fifa/fixtures.py
@@ -1728,9 +1728,9 @@ def load_fixtures(force: bool = False) -> pd.DataFrame:
     return pd.DataFrame(rows).sort_values("match_number").reset_index(drop=True)
 ```
 
-- [ ] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_fixtures.py -q`.
+- [x] **Step 4: Run to verify pass** — `.venv/bin/pytest tests/test_fixtures.py -q`.
 
-- [ ] **Step 5: Live feed verification (network)**
+- [x] **Step 5: Live feed verification (network)**
 
 ```bash
 .venv/bin/python - <<'EOF'
@@ -1747,7 +1747,7 @@ EOF
 
 Expected: 104 rows total; the matches already played show `played`; all knockout rows `tbd`; names OK. **If `_host_of` or `assert_known` raises:** the live `Location`/name strings differ from the sample — print the offending values, extend `VENUE_HOST`/`FIFA_ALIASES`, AND update `tests/fixtures_sample.json` to the real shape.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/fifa/fixtures.py tests/test_fixtures.py tests/fixtures_sample.json
@@ -1762,7 +1762,7 @@ git commit -m "feat: WC2026 live fixtures client with venue-host neutrality"
 - Create: `predict.py` (repo root), `src/fifa/runtime.py`
 - Test: `tests/test_runtime.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_runtime.py
@@ -1781,7 +1781,7 @@ def test_format_prediction_block():
     assert "1-0 (11.8%)" in text
 ```
 
-- [ ] **Step 2: Run to verify failure**, then implement:
+- [x] **Step 2: Run to verify failure**, then implement:
 
 ```python
 # src/fifa/runtime.py
@@ -1879,14 +1879,14 @@ for r in up.itertuples(index=False):
     print()
 ```
 
-- [ ] **Step 3: Run unit test** — `.venv/bin/pytest tests/test_runtime.py -q` → pass.
+- [x] **Step 3: Run unit test** — `.venv/bin/pytest tests/test_runtime.py -q` → pass.
 
-- [ ] **Step 4: Real prediction smoke (network)**
+- [x] **Step 4: Real prediction smoke (network)**
 
 Run: `.venv/bin/python predict.py --days 4`
 Expected: predictions for the imminent fixtures (USA–Paraguay, Brazil–Morocco, Netherlands–Japan…), heavy favorites showing sensible LOCK/STRONG badges, probabilities summing to 1, no scoreline above ~15%.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add predict.py src/fifa/runtime.py tests/test_runtime.py
@@ -1901,7 +1901,7 @@ git commit -m "feat: predict.py CLI with tiered scoreline output"
 - Create: `src/fifa/tournament.py`
 - Test: `tests/test_tournament.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 # tests/test_tournament.py
@@ -1945,7 +1945,7 @@ def test_best_thirds_selects_eight():
     assert min(pts) >= 1  # the four 0-point teams are out... (3,7,11 have pts 3; etc.)
 ```
 
-- [ ] **Step 2: Run to verify failure**, then implement:
+- [x] **Step 2: Run to verify failure**, then implement:
 
 ```python
 # src/fifa/tournament.py
@@ -2004,9 +2004,9 @@ def best_thirds(thirds, rng) -> list[str]:
     return [team for team, _ in ranked[:8]]
 ```
 
-- [ ] **Step 3: Run to verify pass** — `.venv/bin/pytest tests/test_tournament.py -q`.
+- [x] **Step 3: Run to verify pass** — `.venv/bin/pytest tests/test_tournament.py -q`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/fifa/tournament.py tests/test_tournament.py
@@ -2035,7 +2035,7 @@ gnarly to transcribe confidently, set `THIRDS_RANDOM = True`** and assign the 8 
 thirds randomly to the third-slots each run (documented approximation — affects R32
 pairings slightly, group-stage odds not at all). Record the choice in the commit message.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 # append to tests/test_tournament.py
@@ -2080,7 +2080,7 @@ def test_simulate_deterministic_with_seed():
     assert r1["win_group"] == r2["win_group"]
 ```
 
-- [ ] **Step 2: Run to verify failure**, then implement (append to `tournament.py`):
+- [x] **Step 2: Run to verify failure**, then implement (append to `tournament.py`):
 
 ```python
 def _sample_score(m, rng) -> tuple[int, int]:
@@ -2227,9 +2227,9 @@ def simulate_tournament(fixtures, predictor, elo_ratings, n_runs=10000, seed=0) 
     return out.sort_values("champion", ascending=False)
 ```
 
-- [ ] **Step 3: Run to verify pass** — `.venv/bin/pytest tests/test_tournament.py -q`.
+- [x] **Step 3: Run to verify pass** — `.venv/bin/pytest tests/test_tournament.py -q`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -u && git commit -m "feat: Monte Carlo tournament simulation (groups + knockout, thirds fallback documented)"
@@ -2242,7 +2242,7 @@ git add -u && git commit -m "feat: Monte Carlo tournament simulation (groups + k
 **Files:**
 - Create: `simulate.py` (repo root)
 
-- [ ] **Step 1: Implement**
+- [x] **Step 1: Implement**
 
 ```python
 # simulate.py  (repo root)
@@ -2269,12 +2269,12 @@ print((result.head(15) * 100).round(1).to_string())
 print("\nwritten to data/sim_results.json")
 ```
 
-- [ ] **Step 2: Real run (network; 10k runs takes a few minutes — each run samples ~100 matches; cache matrices per fixture pairing across runs if slower than ~10 min: memoize `predictor.matrix_for` keyed on (home, away, neutral))**
+- [x] **Step 2: Real run (network; 10k runs takes a few minutes — each run samples ~100 matches; cache matrices per fixture pairing across runs if slower than ~10 min: memoize `predictor.matrix_for` keyed on (home, away, neutral))**
 
 Run: `.venv/bin/python simulate.py --runs 2000` (smoke), then `--runs 10000`.
 Expected: champion list headed by the usual heavyweights (Spain/France/England/Argentina/Brazil cluster, each ~8–16%), hosts respectable, no minnow above 2%. Compare against the published academic 2026 forecast (Spain 14.5%, England/France 12.4%) — same ballpark = sanity confirmed.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add simulate.py && git commit -m "feat: simulate.py CLI with champion-odds leaderboard"
@@ -2288,7 +2288,7 @@ git add simulate.py && git commit -m "feat: simulate.py CLI with champion-odds l
 - Create: `src/fifa/dashboard.py`, `update.py` (repo root)
 - Test: `tests/test_dashboard.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_dashboard.py
@@ -2313,7 +2313,7 @@ def test_render_contains_sections_and_teams():
         assert needle in html
 ```
 
-- [ ] **Step 2: Run to verify failure**, then implement:
+- [x] **Step 2: Run to verify failure**, then implement:
 
 ```python
 # src/fifa/dashboard.py
@@ -2425,14 +2425,14 @@ out.write_text(html)
 print(f"done → open {out.resolve()}")
 ```
 
-- [ ] **Step 3: Run to verify pass** — `.venv/bin/pytest tests/test_dashboard.py -q`.
+- [x] **Step 3: Run to verify pass** — `.venv/bin/pytest tests/test_dashboard.py -q`.
 
-- [ ] **Step 4: Full real run**
+- [x] **Step 4: Full real run**
 
 Run: `.venv/bin/python update.py` then `open dashboard/index.html`
 Expected: dashboard renders with real fixtures (June 13+ matches), advance table, champion leaderboard, honest report card.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/fifa/dashboard.py update.py tests/test_dashboard.py
@@ -2443,12 +2443,12 @@ git commit -m "feat: static dashboard and daily update pipeline"
 
 ### Task 19: Final verification + delivery
 
-- [ ] **Step 1: Full test suite** — `.venv/bin/pytest -q` → ALL pass (some live-network checks were one-off steps; the suite itself is offline).
-- [ ] **Step 2: Fresh end-to-end** — `.venv/bin/python backtest.py && .venv/bin/python update.py && .venv/bin/python predict.py --days 7` — paste the report card and 3 sample predictions into the final summary to the user. Verify every gate PASSes.
-- [ ] **Step 3: Spot-check honesty** — confirm the two already-played WC2026 matches (Mexico 2-0 South Africa, South Korea 2-1 Czechia) are excluded from "upcoming" and that backtest numbers sit in the honest bands (no leakage alarm).
-- [ ] **Step 4: README** — short `README.md`: what it is, the four commands, the honest-expectations table, data sources + credits (martj42, eloratings.net, fixturedownload).
-- [ ] **Step 5: Update vault hub** (`~/Documents/ObsidianVault/1-projects/ml-fifa.md`): move build to Recent decisions with the real backtest numbers; update Next to "daily update.py during tournament".
-- [ ] **Step 6: Final commit**
+- [x] **Step 1: Full test suite** — `.venv/bin/pytest -q` → ALL pass (some live-network checks were one-off steps; the suite itself is offline).
+- [x] **Step 2: Fresh end-to-end** — `.venv/bin/python backtest.py && .venv/bin/python update.py && .venv/bin/python predict.py --days 7` — paste the report card and 3 sample predictions into the final summary to the user. Verify every gate PASSes.
+- [x] **Step 3: Spot-check honesty** — confirm the two already-played WC2026 matches (Mexico 2-0 South Africa, South Korea 2-1 Czechia) are excluded from "upcoming" and that backtest numbers sit in the honest bands (no leakage alarm).
+- [x] **Step 4: README** — short `README.md`: what it is, the four commands, the honest-expectations table, data sources + credits (martj42, eloratings.net, fixturedownload).
+- [x] **Step 5: Update vault hub** (`~/Documents/ObsidianVault/1-projects/ml-fifa.md`): move build to Recent decisions with the real backtest numbers; update Next to "daily update.py during tournament".
+- [x] **Step 6: Final commit**
 
 ```bash
 git add -A && git commit -m "docs: README + final verification artifacts"
@@ -2465,7 +2465,7 @@ approved explicitly; market values were rejected.
 
 **Files:** Modify `src/fifa/features.py`, `src/fifa/runtime.py`, `src/fifa/fixtures.py`; tests in `tests/test_features.py`
 
-- [ ] **Step 1: Failing test (append to `tests/test_features.py`)**
+- [x] **Step 1: Failing test (append to `tests/test_features.py`)**
 
 ```python
 def test_intercontinental_displacement():
@@ -2485,7 +2485,7 @@ def test_intercontinental_displacement():
     assert row2.loc[0, "intercont_home"] == 0.0  # CONCACAF team at home continent
 ```
 
-- [ ] **Step 2: Implement.** In `features.py`: add `"intercont_home", "intercont_away"` to `COLUMNS` (before `"k_tier"`); add helper + wire `country` through:
+- [x] **Step 2: Implement.** In `features.py`: add `"intercont_home", "intercont_away"` to `COLUMNS` (before `"k_tier"`); add helper + wire `country` through:
 
 ```python
 def _displacement(team: str, venue_country: str | None) -> float:
@@ -2509,13 +2509,13 @@ Callers (`predict.py`, `update.py`) pass `r.host`. The tournament sim's knockout
 `country="United States"` (13 of 16 R32 venues and all matches from QF onward are in the US —
 documented approximation).
 
-- [ ] **Step 3:** `.venv/bin/pytest -q` → all pass. Commit: `feat: intercontinental displacement feature`.
+- [x] **Step 3:** `.venv/bin/pytest -q` → all pass. Commit: `feat: intercontinental displacement feature`.
 
 ### Task 21: Shootout-informed penalty resolution
 
 **Files:** Modify `src/fifa/tournament.py`, `simulate.py`; tests in `tests/test_tournament.py`
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 ```python
 def test_pens_prob_favors_strong_shootout_record():
@@ -2527,7 +2527,7 @@ def test_pens_prob_favors_strong_shootout_record():
     assert p2 == pytest.approx(0.5)
 ```
 
-- [ ] **Step 2: Implement (append to `tournament.py`)**
+- [x] **Step 2: Implement (append to `tournament.py`)**
 
 ```python
 def shootout_table(shootouts_df) -> dict[str, tuple[int, int]]:
@@ -2557,13 +2557,13 @@ def pens_prob(t1, t2, tbl, elo_ratings) -> float:
 `simulate_tournament(...)` gains `pens_tbl=None` (defaults to `{}`) and threads it through.
 `simulate.py` and `update.py` build it: `pens = tournament.shootout_table(data.load_shootouts())`.
 
-- [ ] **Step 3:** `.venv/bin/pytest -q` → pass. Commit: `feat: shootout-history-informed penalty resolution`.
+- [x] **Step 3:** `.venv/bin/pytest -q` → pass. Commit: `feat: shootout-history-informed penalty resolution`.
 
 ### Task 22: Probability calibration (protects the ≥70% LOCK contract)
 
 **Files:** Create `src/fifa/calibrate.py`; modify `src/fifa/matrix.py`, `src/fifa/backtest_lib.py`, `src/fifa/runtime.py`; test `tests/test_calibrate.py`
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
 
 ```python
 # tests/test_calibrate.py
@@ -2597,7 +2597,7 @@ def test_rescale_wdl_hits_target():
     assert m2.sum() == pytest.approx(1.0)
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 ```python
 # src/fifa/calibrate.py
@@ -2659,7 +2659,7 @@ BOTH raw and calibrated report cards (calibrated is the official one). Wire into
 `runtime.build_predictor`: load the calibrator from `backtest_report.json` when present and
 apply the same rescale inside `Predictor.matrix_for` (add `calibrator=None` attr).
 
-- [ ] **Step 3:** `.venv/bin/pytest -q` → pass; re-run `.venv/bin/python backtest.py` —
+- [x] **Step 3:** `.venv/bin/pytest -q` → pass; re-run `.venv/bin/python backtest.py` —
 expect LOCK-tier accuracy to be the metric that improves most. Commit:
 `feat: isotonic WDL calibration applied to matrices and backtest`.
 
@@ -2674,7 +2674,7 @@ returns per-match bookmaker h2h prices. Key read from env `ODDS_API_KEY`, fallba
 never break).** NOTE: free tier has no historical odds, so the backtest stays odds-free —
 the report card measures the pure model; odds only sharpen LIVE predictions.
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 ```python
 # tests/test_odds.py
@@ -2704,7 +2704,7 @@ def test_missing_fixture_returns_none():
     assert odds.parse_feed([]).get(("X", "Y")) is None
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 ```python
 # src/fifa/odds.py
@@ -2786,7 +2786,7 @@ calibration: `mp = book.get((home, away))` → if present,
 `m = mx.rescale_wdl(m, target)`. `build_predictor` calls `odds.fetch_book()` once.
 `update.py`/`predict.py` output gains a `(market-blended)` marker when odds were applied.
 
-- [ ] **Step 3:** `.venv/bin/pytest -q` → pass. With the key present, run
+- [x] **Step 3:** `.venv/bin/pytest -q` → pass. With the key present, run
 `.venv/bin/python predict.py --days 3` and verify the marker appears and probabilities
 shift modestly toward the market. Commit: `feat: optional bookmaker odds blend`.
 
