@@ -84,6 +84,7 @@ FIFA_ALIASES = {
     "China PR": "China",
     "USA": "United States",
     "Curacao": "Curaçao",
+    "Bosnia & Herzegovina": "Bosnia and Herzegovina",  # The Odds API spelling
 }
 TBD_PLACEHOLDER = "To be announced"
 
