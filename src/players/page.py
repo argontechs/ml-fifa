@@ -62,7 +62,11 @@ def _nation_tables(meta, labels, names) -> str:
         order.sort(key=lambda n: -champs.get(n, {}).get("champion", 0))
     blocks = []
     for nation in order:
-        sub = wc[wc["nation"] == nation].head(14)
+        sub = wc[wc["nation"] == nation].copy()
+        # involvement (season goal contributions), not raw minutes — minutes ranks
+        # league iron-men above actual stars (the Ronaldo bug)
+        sub["inv"] = (sub["npg90"] + sub["ast90"]) * sub["nineties"]
+        sub = sub.sort_values(["inv", "minutes"], ascending=False).head(26)
         rows = "".join(
             f"<tr><td>{r.player}</td><td>{r.pos}</td><td>{r.team}</td>"
             f"<td class='num'>{r.minutes:.0f}</td><td class='num'>{r.npg90:.2f}</td>"
