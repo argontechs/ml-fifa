@@ -2456,6 +2456,335 @@ git add -A && git commit -m "docs: README + final verification artifacts"
 
 ---
 
+## Addendum tasks (user-approved 2026-06-12): displacement, shootouts, calibration, odds
+
+Execute after Task 19, in order — each re-runs the affected pipeline stage. These four were
+approved explicitly; market values were rejected.
+
+### Task 20: Intercontinental displacement feature
+
+**Files:** Modify `src/fifa/features.py`, `src/fifa/runtime.py`, `src/fifa/fixtures.py`; tests in `tests/test_features.py`
+
+- [ ] **Step 1: Failing test (append to `tests/test_features.py`)**
+
+```python
+def test_intercontinental_displacement():
+    df = _df()
+    df["country"] = ["Brazil", "Brazil", "Japan", "England"]  # venue country column
+    out, _ = elo.compute_elo(df)
+    fb = features.FeatureBuilder()
+    X, _, _ = fb.fit_transform(out)
+    # Row 2: A vs C in Japan (AFC). With A,B,C unmapped (OTHER), displacement vs AFC = 1
+    assert X.loc[2, "intercont_home"] == 1.0
+    # England vs England-confed teams: France (UEFA) at home in England (UEFA) → 0
+    row = fb.features_for("France", "Germany", pd.Timestamp("2026-06-20"),
+                          "FIFA World Cup", neutral=True, country="United States")
+    assert row.loc[0, "intercont_home"] == 1.0  # UEFA team in CONCACAF land
+    row2 = fb.features_for("Mexico", "France", pd.Timestamp("2026-06-20"),
+                           "FIFA World Cup", neutral=False, country="Mexico")
+    assert row2.loc[0, "intercont_home"] == 0.0  # CONCACAF team at home continent
+```
+
+- [ ] **Step 2: Implement.** In `features.py`: add `"intercont_home", "intercont_away"` to `COLUMNS` (before `"k_tier"`); add helper + wire `country` through:
+
+```python
+def _displacement(team: str, venue_country: str | None) -> float:
+    if not venue_country:
+        return 0.0
+    vc = CONFED.get(venue_country)
+    if vc is None:
+        return 0.0
+    return float(CONFED.get(team, "OTHER") != vc)
+```
+
+`_row(...)` gains a `country` parameter and the dict gains
+`"intercont_home": _displacement(home, country), "intercont_away": _displacement(away, country)`.
+`fit_transform` passes `r.country` (the results.csv venue-country column — present on every row).
+`features_for(home, away, date, tournament, neutral, country=None)` passes it through.
+
+In `fixtures.py`: `load_fixtures` adds a `"host"` column = `_host_of(m["Location"])`.
+In `runtime.py`: `predict_fixture(pred, home, away, date, neutral, country=None)` forwards to
+`matrix_for`, and `Predictor.matrix_for(...)` gains `country=None` forwarded to `features_for`.
+Callers (`predict.py`, `update.py`) pass `r.host`. The tournament sim's knockout matches pass
+`country="United States"` (13 of 16 R32 venues and all matches from QF onward are in the US —
+documented approximation).
+
+- [ ] **Step 3:** `.venv/bin/pytest -q` → all pass. Commit: `feat: intercontinental displacement feature`.
+
+### Task 21: Shootout-informed penalty resolution
+
+**Files:** Modify `src/fifa/tournament.py`, `simulate.py`; tests in `tests/test_tournament.py`
+
+- [ ] **Step 1: Failing test**
+
+```python
+def test_pens_prob_favors_strong_shootout_record():
+    tbl = {"Germany": (8, 8), "England": (1, 8)}   # (wins, total)
+    p = tournament.pens_prob("Germany", "England", tbl, {"Germany": 1900, "England": 1900})
+    assert p > 0.60
+    # No data → falls back to pure Elo expectancy (equal ratings → 0.5)
+    p2 = tournament.pens_prob("X", "Y", {}, {"X": 1900, "Y": 1900})
+    assert p2 == pytest.approx(0.5)
+```
+
+- [ ] **Step 2: Implement (append to `tournament.py`)**
+
+```python
+def shootout_table(shootouts_df) -> dict[str, tuple[int, int]]:
+    """team → (shootout wins, shootouts contested), from data.load_shootouts()."""
+    tbl: dict[str, list[int]] = {}
+    for r in shootouts_df.itertuples(index=False):
+        for t in (r.home_team, r.away_team):
+            tbl.setdefault(t, [0, 0])[1] += 1
+        tbl[r.winner][0] += 1
+    return {t: (w, n) for t, (w, n) in tbl.items()}
+
+
+def pens_prob(t1, t2, tbl, elo_ratings) -> float:
+    """P(t1 wins shootout): smoothed historical record blended 50/50 with Elo expectancy."""
+    from . import elo as elo_mod
+    elo_p = elo_mod.expected(elo_ratings.get(t1, 1500), elo_ratings.get(t2, 1500), neutral=True)
+    w1, n1 = tbl.get(t1, (0, 0))
+    w2, n2 = tbl.get(t2, (0, 0))
+    r1 = (w1 + 2) / (n1 + 4)   # Beta(2,2) prior toward 0.5
+    r2 = (w2 + 2) / (n2 + 4)
+    hist_p = r1 / (r1 + r2)
+    return 0.5 * hist_p + 0.5 * elo_p
+```
+
+`_knockout_match(...)` gains a `pens_tbl` parameter; its final line becomes
+`return t1 if rng.random() < pens_prob(t1, t2, pens_tbl, elo_ratings) else t2`.
+`simulate_tournament(...)` gains `pens_tbl=None` (defaults to `{}`) and threads it through.
+`simulate.py` and `update.py` build it: `pens = tournament.shootout_table(data.load_shootouts())`.
+
+- [ ] **Step 3:** `.venv/bin/pytest -q` → pass. Commit: `feat: shootout-history-informed penalty resolution`.
+
+### Task 22: Probability calibration (protects the ≥70% LOCK contract)
+
+**Files:** Create `src/fifa/calibrate.py`; modify `src/fifa/matrix.py`, `src/fifa/backtest_lib.py`, `src/fifa/runtime.py`; test `tests/test_calibrate.py`
+
+- [ ] **Step 1: Failing tests**
+
+```python
+# tests/test_calibrate.py
+import numpy as np
+import pytest
+from fifa import matrix
+from fifa.calibrate import WDLCalibrator
+
+RNG = np.random.default_rng(3)
+
+
+def test_calibrator_fixes_overconfidence():
+    # Synthetic overconfident forecasts: claimed 80% when truth is 60%
+    n = 4000
+    raw = np.tile([0.8, 0.1, 0.1], (n, 1))
+    outcomes = RNG.choice(3, size=n, p=[0.6, 0.2, 0.2])
+    cal = WDLCalibrator().fit(raw, outcomes)
+    fixed = cal.transform(raw)
+    assert fixed[0].sum() == pytest.approx(1.0)
+    assert abs(fixed[0][0] - 0.6) < 0.05      # 0.8 pulled down toward truth
+    # JSON round-trip preserves behavior
+    cal2 = WDLCalibrator.from_dict(cal.to_dict())
+    np.testing.assert_allclose(cal2.transform(raw)[0], fixed[0], atol=1e-9)
+
+
+def test_rescale_wdl_hits_target():
+    m = matrix.score_matrix(1.8, 1.0, rho=-0.05)
+    target = (0.5, 0.3, 0.2)
+    m2 = matrix.rescale_wdl(m, target)
+    assert matrix.wdl(m2) == pytest.approx(target, abs=1e-9)
+    assert m2.sum() == pytest.approx(1.0)
+```
+
+- [ ] **Step 2: Implement**
+
+```python
+# src/fifa/calibrate.py
+"""Isotonic W/D/L calibration: makes '70% confident' mean 'wins 70% of the time'."""
+from __future__ import annotations
+
+import numpy as np
+from sklearn.isotonic import IsotonicRegression
+
+
+class WDLCalibrator:
+    def fit(self, probs, outcomes) -> "WDLCalibrator":
+        probs = np.asarray(probs, dtype=float)
+        outcomes = np.asarray(outcomes)
+        self.curves_ = []
+        for k in range(3):
+            iso = IsotonicRegression(out_of_bounds="clip", y_min=1e-4, y_max=1 - 1e-4)
+            iso.fit(probs[:, k], (outcomes == k).astype(float))
+            self.curves_.append((iso.X_thresholds_.tolist(), iso.y_thresholds_.tolist()))
+        return self
+
+    def transform(self, probs):
+        probs = np.atleast_2d(np.asarray(probs, dtype=float))
+        cols = [np.interp(probs[:, k], *self.curves_[k]) for k in range(3)]
+        out = np.column_stack(cols)
+        return out / out.sum(axis=1, keepdims=True)
+
+    def to_dict(self) -> dict:
+        return {"curves": self.curves_}
+
+    @classmethod
+    def from_dict(cls, d) -> "WDLCalibrator":
+        obj = cls()
+        obj.curves_ = [tuple(c) for c in d["curves"]]
+        return obj
+```
+
+Append to `matrix.py`:
+
+```python
+def rescale_wdl(m: np.ndarray, target: tuple[float, float, float]) -> np.ndarray:
+    """Rescale the win/draw/loss regions of a score matrix to hit target W/D/L probs,
+    preserving the relative scoreline shape inside each region."""
+    ph, pd_, pa = wdl(m)
+    out = m.copy()
+    n = m.shape[0]
+    il, iu, di = np.tril_indices(n, -1), np.triu_indices(n, 1), np.diag_indices(n)
+    out[il] *= target[0] / max(ph, 1e-12)
+    out[di] *= target[1] / max(pd_, 1e-12)
+    out[iu] *= target[2] / max(pa, 1e-12)
+    return out / out.sum()
+```
+
+Wire into `backtest_lib.run`: after tuning (rho, w) on validation, collect validation
+`(p, outcome)` pairs, fit `WDLCalibrator`, then in the test stage apply
+`matrix.rescale_wdl(m, calibrator.transform(p_raw)[0])` to each matrix before
+`evaluate.score_prediction`. Save `"calibrator": cal.to_dict()` in the report JSON and print
+BOTH raw and calibrated report cards (calibrated is the official one). Wire into
+`runtime.build_predictor`: load the calibrator from `backtest_report.json` when present and
+apply the same rescale inside `Predictor.matrix_for` (add `calibrator=None` attr).
+
+- [ ] **Step 3:** `.venv/bin/pytest -q` → pass; re-run `.venv/bin/python backtest.py` —
+expect LOCK-tier accuracy to be the metric that improves most. Commit:
+`feat: isotonic WDL calibration applied to matrices and backtest`.
+
+### Task 23: Bookmaker odds blend (REQUIRES `ODDS_API_KEY` from user)
+
+**Files:** Create `src/fifa/odds.py`; modify `src/fifa/runtime.py`, `update.py`; test `tests/test_odds.py`
+
+The Odds API (the-odds-api.com, free tier 500 credits/mo): `GET
+https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds?apiKey=KEY&regions=eu,uk&markets=h2h`
+returns per-match bookmaker h2h prices. Key read from env `ODDS_API_KEY`, fallback file
+`data/odds_api_key.txt`. **No key / no coverage → silently model-only (predictions must
+never break).** NOTE: free tier has no historical odds, so the backtest stays odds-free —
+the report card measures the pure model; odds only sharpen LIVE predictions.
+
+- [ ] **Step 1: Failing test**
+
+```python
+# tests/test_odds.py
+import pytest
+from fifa import odds
+
+SAMPLE = [{
+    "home_team": "France", "away_team": "Senegal",
+    "bookmakers": [{"key": "b1", "markets": [{"key": "h2h", "outcomes": [
+        {"name": "France", "price": 1.60}, {"name": "Senegal", "price": 6.0},
+        {"name": "Draw", "price": 4.0}]}]},
+                   {"key": "b2", "markets": [{"key": "h2h", "outcomes": [
+        {"name": "France", "price": 1.66}, {"name": "Senegal", "price": 5.8},
+        {"name": "Draw", "price": 3.9}]}]}],
+}]
+
+
+def test_implied_probs_devigged_and_keyed():
+    book = odds.parse_feed(SAMPLE)
+    p = book[("France", "Senegal")]
+    assert sum(p) == pytest.approx(1.0)
+    assert p[0] > 0.55 and p[0] < 0.68          # ~1/1.63 devigged
+    assert p[1] < p[0] and p[2] < p[0]
+
+
+def test_missing_fixture_returns_none():
+    assert odds.parse_feed([]).get(("X", "Y")) is None
+```
+
+- [ ] **Step 2: Implement**
+
+```python
+# src/fifa/odds.py
+"""Bookmaker consensus odds via The Odds API. Optional: absent key → empty book."""
+from __future__ import annotations
+
+import json
+import os
+
+import numpy as np
+
+from . import data
+
+SPORT = "soccer_fifa_world_cup"
+URL = f"https://api.the-odds-api.com/v4/sports/{SPORT}/odds"
+MARKET_WEIGHT = 0.6  # literature: the market is sharper than any public model
+
+
+def _api_key() -> str | None:
+    key = os.environ.get("ODDS_API_KEY")
+    if key:
+        return key
+    f = data.DATA_DIR / "odds_api_key.txt"
+    return f.read_text().strip() if f.exists() else None
+
+
+def parse_feed(feed) -> dict[tuple[str, str], tuple[float, float, float]]:
+    """(home, away) → consensus devigged (p_home, p_draw, p_away)."""
+    book = {}
+    for match in feed:
+        home = data.normalize_team(match["home_team"])
+        away = data.normalize_team(match["away_team"])
+        probs = []
+        for bm in match.get("bookmakers", []):
+            for mkt in bm.get("markets", []):
+                if mkt["key"] != "h2h":
+                    continue
+                prices = {o["name"]: o["price"] for o in mkt["outcomes"]}
+                if not {match["home_team"], match["away_team"], "Draw"} <= prices.keys():
+                    continue
+                raw = np.array([1 / prices[match["home_team"]], 1 / prices["Draw"],
+                                1 / prices[match["away_team"]]])
+                probs.append(raw / raw.sum())   # devig: normalize the overround away
+        if probs:
+            p = np.mean(probs, axis=0)
+            book[(home, away)] = (float(p[0]), float(p[1]), float(p[2]))
+    return book
+
+
+def fetch_book(force: bool = False) -> dict:
+    key = _api_key()
+    if not key:
+        print("NOTE: no ODDS_API_KEY — predictions are model-only")
+        return {}
+    try:
+        import requests
+        resp = requests.get(URL, params={"apiKey": key, "regions": "eu,uk", "markets": "h2h"},
+                            timeout=30)
+        resp.raise_for_status()
+        (data.DATA_DIR / "odds_cache.json").write_text(resp.text)
+        return parse_feed(resp.json())
+    except Exception as exc:                      # noqa: BLE001 — odds must never break predictions
+        cache = data.DATA_DIR / "odds_cache.json"
+        if cache.exists():
+            print(f"WARNING: odds fetch failed ({exc}); using cached odds")
+            return parse_feed(json.loads(cache.read_text()))
+        print(f"WARNING: odds unavailable ({exc}); model-only")
+        return {}
+```
+
+Wire into `runtime.py`: `Predictor` gains `book={}`; at the end of `matrix_for`, after
+calibration: `mp = book.get((home, away))` → if present,
+`target = tuple(MARKET_WEIGHT*np.array(mp) + (1-MARKET_WEIGHT)*np.array(mx.wdl(m)))` and
+`m = mx.rescale_wdl(m, target)`. `build_predictor` calls `odds.fetch_book()` once.
+`update.py`/`predict.py` output gains a `(market-blended)` marker when odds were applied.
+
+- [ ] **Step 3:** `.venv/bin/pytest -q` → pass. With the key present, run
+`.venv/bin/python predict.py --days 3` and verify the marker appears and probabilities
+shift modestly toward the market. Commit: `feat: optional bookmaker odds blend`.
+
 ## Self-review notes (completed)
 
 - **Spec coverage:** data layer (T2–4), Elo (T5–6), features (T7), matrix+DC (T8), baseline (T9), GBM (T10), metrics/ensemble (T11), walk-forward+tuning (T12), fixtures (T13), predict CLI (T14), tiebreakers (T15), Monte Carlo (T16), simulate CLI (T17), dashboard+update (T18), README/verification (T19). Error handling distributed: stale-cache fallback (T2), hard-error name/venue guards (T4, T13), NA filtering (T3), leakage guards (T6, T7, T12 gates).

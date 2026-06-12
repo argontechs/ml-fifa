@@ -22,6 +22,10 @@ Spec: `docs/superpowers/specs/2026-06-12-wc2026-score-predictor-design.md`
 - [ ] Task 17: simulate.py CLI (champion odds)
 - [ ] Task 18: Static dashboard + update.py daily refresh
 - [ ] Task 19: Final verification, README, vault update
+- [ ] Task 20: Intercontinental displacement feature
+- [ ] Task 21: Shootout-history-informed penalty resolution in sim
+- [ ] Task 22: Isotonic W/D/L calibration (protects the ≥70% LOCK contract)
+- [ ] Task 23: Bookmaker odds blend (needs ODDS_API_KEY in env or data/odds_api_key.txt; gracefully model-only without it)
 
 ## Accuracy contract (agreed 2026-06-12, LOCK bar relaxed to 70% same day)
 - LOCK-tier picks (model ≥70% confident): target ≥70% — measured on real backtests (expect 75–85%)

@@ -33,6 +33,7 @@ Predict FIFA World Cup 2026 match scorelines and outcome probabilities, trained 
 | Shootouts | `.../master/shootouts.csv` | 678 rows; winner per shootout. Elo treats shootout matches as draws (W=0.5). |
 | Name history | `.../master/former_names.csv` | USSR→Russia, West Germany→Germany already merged in results.csv. **We must add**: Yugoslavia→Serbia, Czechoslovakia→Czech Republic successor chains; German DR terminates. |
 | WC2026 fixtures + live scores | `https://fixturedownload.com/feed/json/fifa-world-cup-2026` | All 104 matches, live-updated scores, group/round/venue. **Requires browser User-Agent (403 otherwise).** CSV fallback exists. |
+| Bookmaker consensus odds (optional) | `api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds` | Free tier (500 credits/mo), key via `ODDS_API_KEY` env or `data/odds_api_key.txt`. Live predictions only (no free historical odds → backtest stays model-pure). Absent key → model-only, never breaks. |
 
 **Team-name alias map (hard requirement):** the fixtures feed uses FIFA names ("Korea Republic", "Czechia", "IR Iran", "Côte d'Ivoire", "Cabo Verde", "Türkiye", "Congo DR"); martj42 uses common names ("South Korea", "Czech Republic", "Iran", "Ivory Coast", "Cape Verde", "Turkey", "DR Congo"). Unmapped names are a **hard error** listing the offenders — never silent fuzzy matching.
 
@@ -49,6 +50,8 @@ Two models, ensembled by validation-weighted probability averaging:
 2. **Main:** twin LightGBM Poisson regressors on engineered features.
 
 Rejected: logistic regression / RF / NN / multiclass scoreline classifiers — outcome classifiers can't emit scorelines and demonstrably collapse on draws; NNs offer no edge on 49k tabular rows (Fischer & Heuer 2024).
+
+Two post-processing layers on the blended matrix (added 2026-06-12, plan Tasks 22–23): (1) **isotonic W/D/L calibration** fitted on validation so stated confidence matches realized frequency — the LOCK contract's guarantee; (2) optional **bookmaker odds blend** (market weight 0.6) on live predictions, applied by rescaling the matrix's win/draw/loss regions to the blended targets. The knockout simulation additionally resolves penalty shootouts with smoothed historical shootout records (Task 21) instead of a pure Elo coin flip.
 
 ### 3.2 Elo engine (exact eloratings.net formulas, verified)
 
