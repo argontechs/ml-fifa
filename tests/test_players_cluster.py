@@ -85,5 +85,25 @@ def test_cluster_recovers_styles_and_names_them():
 
 
 def test_unknown_signature_gets_generated_label():
-    name = cluster.label_for(("off90", "card90", "fls90"))
+    name = cluster.label_for(("off90", "card90", "fls90"), group="MF")
     assert name  # never blank — generated descriptive fallback is fine
+
+
+def test_fit_by_group_clusters_each_position_separately():
+    frames = []
+    for pos in ("DF", "MF", "FW"):
+        d = _one_position_styles(n_per=40)
+        d["pos"] = pos
+        d["player"] = pos + d["player"]
+        frames.append(d)
+    df = pd.concat(frames, ignore_index=True)
+    X, meta = features.build_matrix(df)
+    labels, names = cluster.fit_by_group(X, meta, k_range=range(3, 5), seed=42)
+    assert len(labels) == len(meta)
+    # archetype ids never cross position groups
+    by_group = pd.DataFrame({"g": meta["pos_group"], "lab": labels})
+    for lab, grp in by_group.groupby("lab")["g"]:
+        assert grp.nunique() == 1
+    # names carry their role prefix and exist for every label
+    assert set(labels) == set(names)
+    assert all(n.split(" · ")[0] in ("DF", "MF", "FW") for n in names.values())
