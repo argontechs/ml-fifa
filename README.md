@@ -54,6 +54,19 @@ Development/demo without a live match:
 then `sentiment_score.py --once` and open the app. Honesty note: this measures *mention
 mood*, not verified fan allegiance — posts naming both teams chart as "match mood".
 
+## Player style dashboard
+
+`players.html` (live on the site): 1,464 Big-5 players (2025-26, ≥900 min) clustered into
+role archetypes — k-means within each position group on position-normalized per-90 stats,
+interactive style map + per-nation tables. Rebuild after big matchdays:
+
+```bash
+.venv/bin/python players_build.py --deploy
+```
+
+Honest cuts: nationality ≈ squad proxy; players outside the Big-5 leagues aren't profiled;
+market values/injuries unavailable from free sources (cut, not guessed).
+
 ## Layout
 
 `src/fifa/` — data, elo, features, dixon_coles, gbm, matrix, ensemble, evaluate,
