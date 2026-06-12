@@ -36,7 +36,7 @@ elif not args.all:
 up = up.sort_values("date")
 pred = runtime.build_predictor()
 for r in up.itertuples(index=False):
-    m = runtime.predict_fixture(pred, r.home, r.away, r.date, r.neutral)
+    m = runtime.predict_fixture(pred, r.home, r.away, r.date, r.neutral, country=r.host)
     comp = f"Group {r.group}" if r.group else f"Round {r.round}"
     print(runtime.format_prediction(r.home, r.away, str(r.date.date()), comp,
                                     matrix.wdl(m), matrix.top_scorelines(m, 5)))

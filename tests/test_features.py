@@ -77,3 +77,22 @@ def test_momentum_and_wc_experience():
     assert last["elo_trend1y_home"] > 0  # A keeps winning → momentum up over past year
     assert last["elo_trend1y_away"] < 0  # B keeps losing → momentum down
     assert last["wc_exp_home"] == 3  # career World Cup finals matches before this game
+
+
+def test_intercontinental_displacement():
+    fb = features.FeatureBuilder()
+    fb.fit_transform(_df())
+    # UEFA team playing in CONCACAF land → displaced
+    row = fb.features_for("France", "Germany", pd.Timestamp("2026-06-20"),
+                          "FIFA World Cup", neutral=True, country="United States")
+    assert row.loc[0, "intercont_home"] == 1.0
+    assert row.loc[0, "intercont_away"] == 1.0
+    # CONCACAF team on home continent → not displaced
+    row2 = fb.features_for("Mexico", "France", pd.Timestamp("2026-06-20"),
+                           "FIFA World Cup", neutral=False, country="Mexico")
+    assert row2.loc[0, "intercont_home"] == 0.0
+    assert row2.loc[0, "intercont_away"] == 1.0
+    # unknown venue country → neutral 0 (no false signal)
+    row3 = fb.features_for("France", "Germany", pd.Timestamp("2026-06-20"),
+                           "Friendly", neutral=True, country=None)
+    assert row3.loc[0, "intercont_home"] == 0.0

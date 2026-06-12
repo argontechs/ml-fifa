@@ -35,8 +35,10 @@ def build_predictor(force: bool = False) -> Predictor:
     return Predictor(dc, gbm, fb, rho=rho, w_dc=w_dc)
 
 
-def predict_fixture(pred: Predictor, home: str, away: str, date, neutral: bool):
-    return pred.matrix_for(home, away, pd.Timestamp(date), "FIFA World Cup", neutral)
+def predict_fixture(pred: Predictor, home: str, away: str, date, neutral: bool,
+                    country: str | None = None):
+    return pred.matrix_for(home, away, pd.Timestamp(date), "FIFA World Cup", neutral,
+                           country=country)
 
 
 class MemoPredictor:
@@ -45,10 +47,11 @@ class MemoPredictor:
     def __init__(self, pred):
         self.pred, self.cache = pred, {}
 
-    def matrix_for(self, home, away, date, tournament_name, neutral):
-        key = (home, away, neutral, str(getattr(date, "date", lambda: date)()))
+    def matrix_for(self, home, away, date, tournament_name, neutral, country=None):
+        key = (home, away, neutral, country, str(getattr(date, "date", lambda: date)()))
         if key not in self.cache:
-            self.cache[key] = self.pred.matrix_for(home, away, date, tournament_name, neutral)
+            self.cache[key] = self.pred.matrix_for(home, away, date, tournament_name,
+                                                   neutral, country=country)
         return self.cache[key]
 
 

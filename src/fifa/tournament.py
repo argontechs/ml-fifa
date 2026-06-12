@@ -105,7 +105,8 @@ def _play_group_stage(fixtures, predictor, rng):
         if r.status == "played":
             hs, as_ = int(r.home_score), int(r.away_score)
         else:
-            m = predictor.matrix_for(r.home, r.away, r.date, "FIFA World Cup", r.neutral)
+            m = predictor.matrix_for(r.home, r.away, r.date, "FIFA World Cup", r.neutral,
+                                     country=getattr(r, "host", None))
             hs, as_ = _sample_score(m, rng)
         results_by_group.setdefault(g, []).append((r.home, r.away, hs, as_))
     standings, thirds = {}, []
@@ -171,7 +172,10 @@ def _assign_thirds(qualified, rng, max_tries=200):
 
 
 def _knockout_match(t1, t2, predictor, rng, elo_ratings):
-    m = predictor.matrix_for(t1, t2, pd.Timestamp("2026-07-01"), "FIFA World Cup", True)
+    # 13 of 16 R32 venues and all matches from the QF onward are in the US —
+    # documented approximation for the displacement feature in knockouts.
+    m = predictor.matrix_for(t1, t2, pd.Timestamp("2026-07-01"), "FIFA World Cup", True,
+                             country="United States")
     hs, as_ = _sample_score(m, rng)
     if hs != as_:
         return t1 if hs > as_ else t2

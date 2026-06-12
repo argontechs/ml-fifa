@@ -63,7 +63,7 @@ from fifa import matrix  # noqa: E402
 class FixedPredictor:
     """Stub: home side always heavy favorite."""
 
-    def matrix_for(self, home, away, date, tournament, neutral):
+    def matrix_for(self, home, away, date, tournament, neutral, country=None):
         return matrix.score_matrix(2.5, 0.5, rho=-0.05)
 
 

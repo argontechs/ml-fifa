@@ -21,7 +21,7 @@ preds = []
 for r in up.itertuples(index=False):
     if r.date > horizon:
         continue
-    m = runtime.predict_fixture(pred, r.home, r.away, r.date, r.neutral)
+    m = runtime.predict_fixture(pred, r.home, r.away, r.date, r.neutral, country=r.host)
     p = matrix.wdl(m)
     preds.append({
         "home": r.home, "away": r.away, "when": str(r.date.date()),

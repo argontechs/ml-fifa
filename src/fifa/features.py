@@ -49,6 +49,16 @@ CONFED = {
 CONFED_LEVELS = ["UEFA", "CONMEBOL", "CONCACAF", "CAF", "AFC", "OFC", "OTHER"]
 
 
+def _displacement(team: str, venue_country: str | None) -> float:
+    """1.0 when the team plays outside its confederation's continent, 0.0 otherwise/unknown."""
+    if not venue_country:
+        return 0.0
+    vc = CONFED.get(venue_country)
+    if vc is None:
+        return 0.0
+    return float(CONFED.get(team, "OTHER") != vc)
+
+
 class _TeamState:
     __slots__ = ("gf", "ga", "w", "last_date", "recent", "played")
 
@@ -97,6 +107,7 @@ class FeatureBuilder:
         "played_home", "played_away", "h2h_gd",
         "elo_trend1y_home", "elo_trend1y_away", "elo_trend2y_home", "elo_trend2y_away",
         "wc_exp_home", "wc_exp_away",
+        "intercont_home", "intercont_away",
         "k_tier", "neutral", "confed_home", "confed_away",
     ]
 
@@ -123,7 +134,7 @@ class FeatureBuilder:
                 return elo_now - r
         return 0.0
 
-    def _row(self, home, away, date, tournament, neutral, elo_home, elo_away):
+    def _row(self, home, away, date, tournament, neutral, elo_home, elo_away, country=None):
         sh = self._team(home).snapshot(date)
         sa = self._team(away).snapshot(date)
         key = (min(home, away), max(home, away))
@@ -144,6 +155,8 @@ class FeatureBuilder:
             "elo_trend2y_away": self._trend(away, date, elo_away, 730),
             "wc_exp_home": self._wc_count.get(home, 0),
             "wc_exp_away": self._wc_count.get(away, 0),
+            "intercont_home": _displacement(home, country),
+            "intercont_away": _displacement(away, country),
             "k_tier": elo.tournament_k(tournament),
             "neutral": int(neutral),
             "confed_home": CONFED.get(home, "OTHER"),
@@ -156,7 +169,8 @@ class FeatureBuilder:
         for r in elo_df.itertuples(index=False):
             rows.append(
                 self._row(r.home_team, r.away_team, r.date, r.tournament,
-                          r.neutral, r.elo_home_pre, r.elo_away_pre)
+                          r.neutral, r.elo_home_pre, r.elo_away_pre,
+                          country=getattr(r, "country", None))
             )
             res = elo.result_value(r.home_score, r.away_score)
             self._team(r.home_team).update(r.date, r.home_score, r.away_score, res)
@@ -175,10 +189,11 @@ class FeatureBuilder:
         X = self._finalize(X)
         return X, elo_df["home_score"].to_numpy(), elo_df["away_score"].to_numpy()
 
-    def features_for(self, home, away, date, tournament, neutral) -> pd.DataFrame:
+    def features_for(self, home, away, date, tournament, neutral, country=None) -> pd.DataFrame:
         eh = self._ratings.get(home, elo.INITIAL)
         ea = self._ratings.get(away, elo.INITIAL)
-        X = pd.DataFrame([self._row(home, away, date, tournament, neutral, eh, ea)],
+        X = pd.DataFrame([self._row(home, away, date, tournament, neutral, eh, ea,
+                                    country=country)],
                          columns=self.COLUMNS)
         return self._finalize(X)
 

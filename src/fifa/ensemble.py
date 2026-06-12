@@ -18,8 +18,8 @@ class Predictor:
         return m / m.sum()
 
     def matrix_for(self, home: str, away: str, date: pd.Timestamp,
-                   tournament: str, neutral: bool):
+                   tournament: str, neutral: bool, country: str | None = None):
         dc_l = self.dc.predict_lambdas(home, away, neutral)
-        X = self.fb.features_for(home, away, date, tournament, neutral)
+        X = self.fb.features_for(home, away, date, tournament, neutral, country=country)
         lh, la = self.gbm.predict_lambdas(X)
         return self.matrix_from_lambdas(dc_l, (float(lh[0]), float(la[0])))
