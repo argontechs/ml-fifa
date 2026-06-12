@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fifa-predictor"
+version = "0.1.0"
+description = "WC2026 scoreline predictor: Elo + Poisson goal-rate models"
+requires-python = ">=3.12"
+
+[tool.setuptools.packages.find]
+where = ["src"]

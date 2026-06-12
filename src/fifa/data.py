@@ -1,6 +1,7 @@
 """Downloads, caching, cleaning, and team-name normalization."""
 from __future__ import annotations
 
+import re
 import time
 from pathlib import Path
 
@@ -64,3 +65,42 @@ def load_shootouts(force: bool = False) -> pd.DataFrame:
     for col in ("home_team", "away_team", "winner"):
         df[col] = df[col].replace(SUCCESSORS)
     return df
+
+
+# FIFA/fixture-feed names → martj42 dataset names. Identity names omitted.
+# The live completeness check (Task 4 Step 5 / tests) is the source of truth —
+# extend this map if it reports unmapped names.
+FIFA_ALIASES = {
+    "Korea Republic": "South Korea",
+    "Korea DPR": "North Korea",
+    "Czechia": "Czech Republic",
+    "IR Iran": "Iran",
+    "Côte d'Ivoire": "Ivory Coast",
+    "Cote d'Ivoire": "Ivory Coast",
+    "Cabo Verde": "Cape Verde",
+    "Türkiye": "Turkey",
+    "Turkiye": "Turkey",
+    "Congo DR": "DR Congo",
+    "China PR": "China",
+    "USA": "United States",
+    "Curacao": "Curaçao",
+}
+TBD_PLACEHOLDER = "To be announced"
+
+# Knockout seed tokens in the fixture feed: "1A" = group A winner, "2B" = runner-up B,
+# "3CDFGH" = third-placed team from one of those groups. Not team names.
+_SEED_RE = re.compile(r"^[123][A-L]{1,6}$")
+
+
+def is_placeholder(name: str) -> bool:
+    return name == TBD_PLACEHOLDER or bool(_SEED_RE.match(name))
+
+
+def normalize_team(name: str) -> str:
+    return FIFA_ALIASES.get(name, name)
+
+
+def assert_known(names, known_teams) -> None:
+    unknown = sorted({n for n in names if n not in known_teams and not is_placeholder(n)})
+    if unknown:
+        raise ValueError(f"Unmapped team names (add to data.FIFA_ALIASES): {unknown}")

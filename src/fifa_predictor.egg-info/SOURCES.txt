@@ -1,0 +1,8 @@
+pyproject.toml
+src/fifa/__init__.py
+src/fifa/data.py
+src/fifa_predictor.egg-info/PKG-INFO
+src/fifa_predictor.egg-info/SOURCES.txt
+src/fifa_predictor.egg-info/dependency_links.txt
+src/fifa_predictor.egg-info/top_level.txt
+tests/test_data.py

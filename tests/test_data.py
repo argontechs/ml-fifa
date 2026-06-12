@@ -79,3 +79,24 @@ def test_load_results_splits_and_maps(tmp_path, monkeypatch):
     assert list(played["date"]) == sorted(played["date"])  # chronological
     assert bool(played.iloc[1]["neutral"]) is True  # 1994 row is second after sort
     assert upcoming.iloc[0]["home_team"] == "United States"
+
+
+def test_normalize_team_known_aliases():
+    assert data.normalize_team("Korea Republic") == "South Korea"
+    assert data.normalize_team("Czechia") == "Czech Republic"
+    assert data.normalize_team("Türkiye") == "Turkey"
+    assert data.normalize_team("France") == "France"  # identity passthrough
+
+
+def test_assert_known_raises_with_offenders():
+    known = {"France", "Brazil"}
+    with pytest.raises(ValueError, match="Atlantis"):
+        data.assert_known(["France", "Atlantis"], known)
+
+
+def test_seed_tokens_are_placeholders_not_teams():
+    for tok in ("1A", "2L", "3CDFGH", "To be announced"):
+        assert data.is_placeholder(tok)
+    for name in ("France", "3rd Place", "A1"):
+        assert not data.is_placeholder(name)
+    data.assert_known(["France", "1A", "3ABCDF"], {"France"})  # must not raise
