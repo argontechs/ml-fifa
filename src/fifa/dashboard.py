@@ -312,8 +312,11 @@ def render_leaderboard(view: dict) -> str:
                   '<span>Adv</span></div>')
         group_cards.append(f'<div class="gcard"><h3>Group {g}</h3>{header}{rows}</div>')
 
+    # a group only has a meaningful "third" once it has played — unplayed groups'
+    # order is feed-listing noise (Brazil was showing as a 'third' pre-kickoff)
     thirds = sorted(
-        ((g, s[2]) for g, s in standings.items() if len(s) >= 3),
+        ((g, s[2]) for g, s in standings.items()
+         if len(s) >= 3 and any(r["p"] > 0 for r in s)),
         key=lambda kv: (kv[1]["pts"], kv[1]["gf"] - kv[1]["ga"], kv[1]["gf"]),
         reverse=True,
     )
@@ -326,6 +329,12 @@ def render_leaderboard(view: dict) -> str:
             f"<td>{_flag(r['team'], 18)} {r['team']}</td><td>{g}</td>"
             f"<td class='num'>{r['p']}</td><td class='num'>{r['pts']}</td>"
             f"<td class='num'>{r['gf'] - r['ga']:+d}</td><td class='num'>{r['gf']}</td></tr>"
+        )
+    pending = sorted(set(standings) - {g for g, _ in thirds})
+    if pending:
+        third_rows += (
+            f'<tr><td colspan="7" style="color:var(--faint)">groups '
+            f'{", ".join(pending)} join the race once they have played</td></tr>'
         )
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
