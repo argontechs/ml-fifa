@@ -85,7 +85,16 @@ out_dir = Path(__file__).resolve().parent / "dashboard"
 out_dir.mkdir(exist_ok=True)
 (out_dir / "index.html").write_text(dashboard.render(view))
 (out_dir / "past.html").write_text(dashboard.render_past(view))
-print(f"rendered → {out_dir}/index.html + past.html")
+try:  # sentiment snapshot page — best-effort, never blocks the predictor refresh
+    from sentiment import db as sdb
+    from sentiment import publish
+
+    sconn = sdb.connect(data.DATA_DIR / "sentiment.db")
+    (out_dir / "sentiment.html").write_text(publish.render(sconn, view["generated_at"]))
+    sconn.close()
+except Exception as exc:  # noqa: BLE001
+    print(f"sentiment page skipped ({exc})")
+print(f"rendered → {out_dir}/index.html + past.html + sentiment.html")
 
 import os
 import subprocess

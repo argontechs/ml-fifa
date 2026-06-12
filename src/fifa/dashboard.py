@@ -199,7 +199,9 @@ def _match_card(m: dict) -> str:
 def _nav(page: str) -> str:
     return (f'<nav><a href="index.html" class="{"on" if page == "home" else ""}">Upcoming</a>'
             f'<a href="past.html" class="{"on" if page == "past" else ""}">Past matches</a>'
-            f'<a href="players.html" class="{"on" if page == "players" else ""}">Players</a></nav>')
+            f'<a href="players.html" class="{"on" if page == "players" else ""}">Players</a>'
+            f'<a href="sentiment.html" class="{"on" if page == "sentiment" else ""}">Sentiment</a>'
+            f'</nav>')
 
 
 def _past_card(r: dict) -> str:
