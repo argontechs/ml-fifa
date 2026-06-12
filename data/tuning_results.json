@@ -1,0 +1,146 @@
+[
+  {
+    "name": "leaves_31",
+    "rps": 0.17687,
+    "w_dc": 0.2,
+    "params": {
+      "num_leaves": 31
+    },
+    "time_decay": 0.0005,
+    "friendly_w": 0.5,
+    "xi": 0.001,
+    "secs": 8.9
+  },
+  {
+    "name": "decay_3e-4",
+    "rps": 0.17711,
+    "w_dc": 0.2,
+    "params": {},
+    "time_decay": 0.0003,
+    "friendly_w": 0.5,
+    "xi": 0.001,
+    "secs": 13.4
+  },
+  {
+    "name": "xi_5e-4",
+    "rps": 0.17738,
+    "w_dc": 0.3,
+    "params": {},
+    "time_decay": 0.0005,
+    "friendly_w": 0.5,
+    "xi": 0.0005,
+    "secs": 13.6
+  },
+  {
+    "name": "mcs_20",
+    "rps": 0.17743,
+    "w_dc": 0.2,
+    "params": {
+      "min_child_samples": 20
+    },
+    "time_decay": 0.0005,
+    "friendly_w": 0.5,
+    "xi": 0.001,
+    "secs": 13.8
+  },
+  {
+    "name": "friendly_03",
+    "rps": 0.17765,
+    "w_dc": 0.2,
+    "params": {},
+    "time_decay": 0.0005,
+    "friendly_w": 0.3,
+    "xi": 0.001,
+    "secs": 13.5
+  },
+  {
+    "name": "baseline",
+    "rps": 0.1777,
+    "w_dc": 0.2,
+    "params": {},
+    "time_decay": 0.0005,
+    "friendly_w": 0.5,
+    "xi": 0.001,
+    "secs": 19.2
+  },
+  {
+    "name": "mcs_80",
+    "rps": 0.17775,
+    "w_dc": 0.2,
+    "params": {
+      "min_child_samples": 80
+    },
+    "time_decay": 0.0005,
+    "friendly_w": 0.5,
+    "xi": 0.001,
+    "secs": 13.7
+  },
+  {
+    "name": "friendly_07",
+    "rps": 0.17779,
+    "w_dc": 0.3,
+    "params": {},
+    "time_decay": 0.0005,
+    "friendly_w": 0.7,
+    "xi": 0.001,
+    "secs": 13.8
+  },
+  {
+    "name": "leaves_127",
+    "rps": 0.1779,
+    "w_dc": 0.3,
+    "params": {
+      "num_leaves": 127
+    },
+    "time_decay": 0.0005,
+    "friendly_w": 0.5,
+    "xi": 0.001,
+    "secs": 25.0
+  },
+  {
+    "name": "lr03_800",
+    "rps": 0.17791,
+    "w_dc": 0.3,
+    "params": {
+      "learning_rate": 0.03,
+      "n_estimators": 800
+    },
+    "time_decay": 0.0005,
+    "friendly_w": 0.5,
+    "xi": 0.001,
+    "secs": 17.3
+  },
+  {
+    "name": "decay_1e-3",
+    "rps": 0.178,
+    "w_dc": 0.3,
+    "params": {},
+    "time_decay": 0.001,
+    "friendly_w": 0.5,
+    "xi": 0.001,
+    "secs": 13.6
+  },
+  {
+    "name": "xi_2e-3",
+    "rps": 0.17806,
+    "w_dc": 0.2,
+    "params": {},
+    "time_decay": 0.0005,
+    "friendly_w": 0.5,
+    "xi": 0.002,
+    "secs": 13.7
+  },
+  {
+    "name": "lr06_400",
+    "rps": 0.17838,
+    "w_dc": 0.3,
+    "params": {
+      "learning_rate": 0.06,
+      "n_estimators": 400
+    },
+    "time_decay": 0.0005,
+    "friendly_w": 0.5,
+    "xi": 0.001,
+    "secs": 9.8
+  }
+]
