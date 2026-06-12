@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from lightgbm import LGBMRegressor
 
-TIME_DECAY = 0.0005          # per day (half-life ≈ 3.8 years)
+TIME_DECAY = 0.0003          # per day (tuned 2026-06-12, val RPS sweep)
 FRIENDLY_WEIGHT = 0.5
 
 _PARAMS = dict(

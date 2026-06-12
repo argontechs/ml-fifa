@@ -8,7 +8,7 @@ from sklearn.linear_model import PoissonRegressor
 
 
 class DixonColes:
-    def __init__(self, xi: float = 0.001, alpha: float = 1e-3, window_years: int = 15):
+    def __init__(self, xi: float = 0.0005, alpha: float = 1e-3, window_years: int = 15):
         self.xi = xi
         self.alpha = alpha
         self.window_years = window_years

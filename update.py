@@ -9,6 +9,12 @@ from fifa import dashboard, data, elo, fixtures, ledger, matrix, retro, runtime,
 from fifa.runtime import MemoPredictor
 
 LEDGER_PATH = data.DATA_DIR / "predictions_ledger.jsonl"
+MYT_OFFSET = pd.Timedelta(hours=8)  # display timezone: Malaysia (UTC+8), no DST
+
+
+def myt(ts) -> str:
+    """Format a naive-UTC timestamp for display in Malaysia time."""
+    return (pd.Timestamp(ts) + MYT_OFFSET).strftime("%b %d · %H:%M MYT")
 
 print("1/6 refreshing data + retraining…")
 base = runtime.build_predictor(force=True)
@@ -35,7 +41,7 @@ for r in up.itertuples(index=False):
     if r.date <= horizon:
         display.append({
             "home": r.home, "away": r.away,
-            "when": r.date.strftime("%b %d · %H:%M UTC"),
+            "when": myt(r.date),
             "comp": f"Group {r.group}" if r.group else f"Round {r.round}",
             "p": p, "tier": rec["tier"], "score": top5[0][0], "top5": top5,
             "ctx_home": base.fb.team_context(r.home, r.date),
@@ -56,13 +62,17 @@ sim = tournament.simulate_tournament(fx, pred, ratings, n_runs=10000, seed=42,
 
 print("4/6 scoring the track record…")
 tracker_rows, tally = ledger.tracker(ledger.load(LEDGER_PATH), fx)
+for row in tracker_rows:
+    if row.get("kickoff"):
+        row["when"] = myt(row["kickoff"])
 
 print("5/6 loading backtest card…")
 report = json.loads((data.DATA_DIR / "backtest_report.json").read_text())
 
 print("6/6 rendering dashboard…")
 view = {
-    "generated_at": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M UTC"),
+    "generated_at": (datetime.datetime.now(datetime.UTC)
+                     + datetime.timedelta(hours=8)).strftime("%Y-%m-%d %H:%M MYT"),
     "card": report["test_card"],
     "matches": display,
     "tracker_rows": tracker_rows,
