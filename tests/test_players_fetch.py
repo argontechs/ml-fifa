@@ -48,6 +48,19 @@ def test_assemble_canonical_columns_and_per90():
     assert set(fetch.CANONICAL) <= set(df.columns)
 
 
+def test_dedupe_keeps_bigger_minutes_but_not_other_people():
+    df = pd.DataFrame({
+        "player": ["Neymar", "Neymar", "Paulinho", "Paulinho"],
+        "nation": ["Brazil", "Brazil", "Brazil", "Portugal"],  # same-name different people
+        "minutes": [900, 1500, 1000, 1100],
+        "team": ["Al-Hilal", "Santos", "X", "Y"],
+    })
+    out = fetch.dedupe(df)
+    assert len(out) == 3
+    assert out[out["player"] == "Neymar"].iloc[0]["team"] == "Santos"  # max minutes kept
+    assert set(out[out["player"] == "Paulinho"]["nation"]) == {"Brazil", "Portugal"}
+
+
 def test_nation_bridge_maps_fbref_codes():
     df = fetch.assemble(_readers())
     assert df.iloc[0]["nation"] == "France"  # 'fr FRA' → FRA → France via TRIGRAPH

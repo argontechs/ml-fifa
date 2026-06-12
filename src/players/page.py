@@ -90,11 +90,12 @@ details{{margin:.4rem 0;border:1px solid var(--line);border-radius:6px;padding:.
 background:var(--panel)}} summary{{cursor:pointer}}</style></head><body>
 <header>
 <h1>WC26<span class="dot">·</span>Players</h1>
-<div class="sub">playing-style archetypes · {len(meta):,} Big-5 players (2025-26, ≥900 min)
-· generated {generated_at}</div>
+<div class="sub">playing-style archetypes · {len(meta):,} players across 11 leagues (latest
+full seasons, ≥900 min) · generated {generated_at}</div>
 {_nav_html()}
-<div class="ticker"><b>Reading this honestly:</b> profiles come from 2025-26 Big-5 European
-league stats — players at clubs outside those leagues aren't profiled. Teams group by
+<div class="ticker"><b>Reading this honestly:</b> profiles come from latest full club seasons across the Big-5 European leagues +
+Brasileirão, MLS, Saudi Pro League, Liga MX, Eredivisie and Primeira Liga — players outside
+these leagues aren't profiled. Teams group by
 <b>nationality</b>, not confirmed squads. Stats are position-normalized, so an archetype means
 "relative to others in the same role". Market values/injuries: not available from the current
 free source — cut rather than guessed.</div>

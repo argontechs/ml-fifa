@@ -26,16 +26,29 @@ def render_once() -> Path:
         conn.close()
 
 
+def latest_post_id() -> int:
+    conn = db.connect(data.DATA_DIR / "sentiment.db")
+    try:
+        row = conn.execute("SELECT COALESCE(MAX(id), 0) FROM posts").fetchone()
+        return int(row[0])
+    finally:
+        conn.close()
+
+
 ap = argparse.ArgumentParser()
 ap.add_argument("--loop", type=int, default=0, metavar="SECONDS")
 ap.add_argument("--no-deploy", action="store_true")
 args = ap.parse_args()
 
+last_seen = -1
 while True:
-    out = render_once()
-    ok = (not args.no_deploy) and deploy_dashboard()
-    print(f"{datetime.datetime.now():%H:%M:%S} rendered {out.name}"
-          + (" + deployed" if ok else ""))
+    newest = latest_post_id()
+    if newest != last_seen:  # only render+deploy when there's actually new data
+        out = render_once()
+        ok = (not args.no_deploy) and deploy_dashboard()
+        print(f"{datetime.datetime.now():%H:%M:%S} rendered {out.name}"
+              + (" + deployed" if ok else ""), flush=True)
+        last_seen = newest
     if not args.loop:
         break
     time.sleep(args.loop)

@@ -12,7 +12,7 @@ ap.add_argument("--deploy", action="store_true")
 args = ap.parse_args()
 
 print("1/4 fetching FBref tables (disk-cached by soccerdata)…")
-df = fetch.assemble(fetch.default_readers())
+df = fetch.assemble_multi()
 print(f"   {len(df)} players in raw pull")
 
 print("2/4 building position-normalized matrix…")

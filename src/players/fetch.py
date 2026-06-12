@@ -81,3 +81,41 @@ def default_readers() -> dict:
     fb = soccerdata.FBref(leagues=LEAGUE, seasons=SEASON)
     return {st: (lambda st=st: fb.read_player_season_stats(stat_type=st))
             for st in ("standard", "shooting", "misc")}
+
+
+# WC-relevant leagues beyond the Big 5 (custom entries in ~/soccerdata/config/league_dict.json).
+# Calendar-year leagues use their latest COMPLETE season for full-season profiles.
+EXTRA_LEAGUES: list[tuple[str, str]] = [
+    ("BRA-Serie A", "2025"),
+    ("USA-MLS", "2025"),
+    ("SAU-Pro League", "2025-2026"),
+    ("MEX-Liga MX", "2025-2026"),
+    ("NED-Eredivisie", "2025-2026"),
+    ("POR-Primeira Liga", "2025-2026"),
+]
+
+
+def dedupe(df: pd.DataFrame) -> pd.DataFrame:
+    """A player appearing in two leagues (mid-season move) keeps the bigger-minutes row.
+    Key is (player, nation) to avoid merging different players sharing a name."""
+    return (df.sort_values("minutes", ascending=False)
+            .drop_duplicates(subset=["player", "nation"], keep="first")
+            .reset_index(drop=True))
+
+
+def assemble_multi(extra: list[tuple[str, str]] = None) -> pd.DataFrame:
+    """Big-5 plus the extra WC-relevant leagues; each league skips gracefully on failure."""
+    import soccerdata
+
+    frames = [assemble(default_readers())]
+    for lg, season in (EXTRA_LEAGUES if extra is None else extra):
+        try:
+            fb = soccerdata.FBref(leagues=lg, seasons=season)
+            readers = {st: (lambda st=st, fb=fb: fb.read_player_season_stats(stat_type=st))
+                       for st in ("standard", "shooting", "misc")}
+            part = assemble(readers)
+            frames.append(part)
+            print(f"   + {lg} {season}: {len(part)} players")
+        except Exception as exc:  # noqa: BLE001 — one broken league must not sink the page
+            print(f"   ! {lg} skipped ({exc})")
+    return dedupe(pd.concat(frames, ignore_index=True))
