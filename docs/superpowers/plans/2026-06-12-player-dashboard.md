@@ -6,19 +6,21 @@
 **Goal:** `players.html` on the live site: per-90 style archetypes (k-means over position-normalized
 Big-5 stats), interactive Plotly scatter, WC-nation squad tables. One rebuild command.
 
-**Canonical feature names** (single source of truth, used by features/cluster/page and all tests):
-`g90, npxg90, sh90, ast90, xa90, kp90, prgp90, prgc90, drb90, att3rd90, tklint90, blkclr90,
-aer90, fld90, dist, passpct` + identity columns `player, nation, pos, club, age, minutes`.
+**Canonical feature names — FINAL after P1 probe** (single source of truth):
+`npg90, ast90, sh90, sot_pct, conv, crs90, int90, tklw90, fld90, fls90, off90, card90`
++ identity columns `player, team, nation, pos, age, minutes, nineties`.
 
-### Task P1: Probe the data sources (decision point — do FIRST, record verdicts here)
-- [ ] `.venv/bin/pip install soccerdata`
-- [ ] Probe FBref: `soccerdata.FBref(leagues="Big 5 European Leagues Combined", seasons="2025-2026")`,
-  `read_player_season_stats(stat_type="standard")` — print shape + column tuples. If blocked/empty →
-  fallback Understat (top-5, fewer dims: drop `kp90, blkclr90, aer90, fld90, dist, passpct` from
-  canonical set) and record the cut here.
-- [ ] Probe Transfermarkt reader: `hasattr(soccerdata, "Transfermarkt")` (or equivalent in installed
-  version) → if absent, market value/injuries are CUT (on-page note), per spec.
-- [ ] Record verdicts in this file; commit.
+### Task P1: Probe the data sources — ✅ DONE, verdicts:
+- [x] soccerdata 1.9.0 installed. **Transfermarkt reader ABSENT → market value/injuries CUT**
+  (on-page note), per spec's pre-authorized decision.
+- [x] FBref works: Big-5 combined 2025-26, 2,839 players. BUT this soccerdata version only
+  exposes `standard / keeper / shooting / playing_time / misc` player tables (verified for
+  single leagues too) — **no passing/defense/possession**. Understat name-join rejected
+  (fuzzy-matching risk). **Verdict: FBref-only, reduced 12-dim feature set above** —
+  archetypes will be output/creation/defence/discipline-shaped; documented on page.
+- [x] Pinned real column tuples: standard `('Playing Time','Min')`, `('Playing Time','90s')`,
+  `('Performance','Gls'/'Ast'/'PK'/'CrdY'/'CrdR')`, `('nation','')`, `('pos','')`, `('age','')`;
+  shooting `('Standard','Sh'/'SoT%'/'G/Sh')`; misc `('Performance','Crs'/'Int'/'TklW'/'Fld'/'Fls'/'Off')`.
 
 ### Task P2: `src/players/fetch.py` — readers injected, FBref columns pinned from probe output
 - [ ] Failing tests (synthetic frames with REAL FBref column tuples captured in P1):
