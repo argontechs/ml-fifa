@@ -1,0 +1,11 @@
+[
+  {"MatchNumber": 1, "RoundNumber": 1, "DateUtc": "2026-06-11 19:00:00Z",
+   "Location": "Mexico City Stadium", "HomeTeam": "Mexico", "AwayTeam": "South Africa",
+   "Group": "Group A", "HomeTeamScore": 2, "AwayTeamScore": 0, "Winner": "Mexico"},
+  {"MatchNumber": 4, "RoundNumber": 1, "DateUtc": "2026-06-13 22:00:00Z",
+   "Location": "New York/New Jersey Stadium", "HomeTeam": "Brazil", "AwayTeam": "Morocco",
+   "Group": "Group C", "HomeTeamScore": null, "AwayTeamScore": null, "Winner": ""},
+  {"MatchNumber": 73, "RoundNumber": 4, "DateUtc": "2026-06-28 19:00:00Z",
+   "Location": "Los Angeles Stadium", "HomeTeam": "2A", "AwayTeam": "2B",
+   "Group": null, "HomeTeamScore": null, "AwayTeamScore": null, "Winner": ""}
+]
