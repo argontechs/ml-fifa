@@ -330,7 +330,14 @@ def render_leaderboard(view: dict) -> str:
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>WC26 Predictor · Leaderboard</title>{_FONTS}<style>{_CSS}
-.grow.lb,.gcard .grow{{grid-template-columns:auto 1fr repeat(7,1.6rem) 2rem 2.8rem}}
+/* leaderboard needs wider cards: 2-across, not the default 3-across */
+.ggrid{{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:820px){{.ggrid{{grid-template-columns:1fr}}}}
+.gcard .grow{{grid-template-columns:auto minmax(0,1fr) repeat(7,1.5rem) 1.9rem 2.7rem;
+  font-size:10.5px;gap:.25rem}}
+.gcard .grow span:nth-child(2){{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+.grow.q{{background:rgba(184,245,61,.08)}}
+.grow.q span:nth-child(2){{color:var(--volt)}}
 </style></head><body>
 <header>
 <h1>WC26<span class="dot">·</span>Leaderboard</h1>
