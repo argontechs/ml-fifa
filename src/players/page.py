@@ -66,17 +66,21 @@ def _nation_tables(meta, labels, names) -> str:
         # involvement (season goal contributions), not raw minutes — minutes ranks
         # league iron-men above actual stars (the Ronaldo bug)
         sub["inv"] = (sub["npg90"] + sub["ast90"]) * sub["nineties"]
-        sub = sub.sort_values(["inv", "minutes"], ascending=False).head(26)
+        sub = sub.sort_values(["inv", "minutes"], ascending=False)
+        # ALL profiled players are rendered (searchable); only the top 26 show by
+        # default — rows beyond that carry .xtra (the Neymar-at-rank-68 bug)
         rows = "".join(
-            f"<tr><td>{r.player}</td><td>{r.pos}</td><td>{r.team}</td>"
+            f"<tr{' class=xtra' if i >= 26 else ''}><td>{r.player}</td><td>{r.pos}</td>"
+            f"<td>{r.team}</td>"
             f"<td class='num'>{r.minutes:.0f}</td><td class='num'>{r.npg90:.2f}</td>"
             f"<td class='num'>{r.ast90:.2f}</td><td class='num'>{r.tklw90:.2f}</td>"
             f"<td>{r.archetype}</td></tr>"
-            for r in sub.itertuples(index=False)
+            for i, r in enumerate(sub.itertuples(index=False))
         )
+        shown = min(26, len(sub))
         blocks.append(
             f'<details><summary>{_flag(nation)}<b>{nation}</b> '
-            f'<small>({len(sub)} profiled)</small></summary>'
+            f'<small>(top {shown} shown · {len(sub)} profiled — search reaches all)</small></summary>'
             f'<table><tr><th>Player</th><th>Pos</th><th>Club</th><th class="num">Min</th>'
             f'<th class="num">npG/90</th><th class="num">A/90</th><th class="num">TklW/90</th>'
             f'<th>Archetype</th></tr>{rows}</table></details>'
@@ -91,7 +95,8 @@ def render(meta: pd.DataFrame, labels: np.ndarray, xy: np.ndarray,
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>WC26 Predictor · Players</title>{_FONTS}<style>{_CSS}
 details{{margin:.4rem 0;border:1px solid var(--line);border-radius:6px;padding:.5rem .8rem;
-background:var(--panel)}} summary{{cursor:pointer}}</style></head><body>
+background:var(--panel)}} summary{{cursor:pointer}}
+tr.xtra{{display:none}}</style></head><body>
 <header>
 <h1>WC26<span class="dot">·</span>Players</h1>
 <div class="sub">playing-style archetypes · {len(meta):,} players across 11 leagues (latest
@@ -118,9 +123,9 @@ document.getElementById('psearch').addEventListener('input', function () {{
     var any = false;
     d.querySelectorAll('tr').forEach(function (tr) {{
       if (!tr.cells || tr.cells.length < 2) return;
-      var name = tr.cells[0].textContent.toLowerCase();
-      var hit = !q || name.indexOf(q) !== -1;
-      tr.style.display = hit ? '' : 'none';
+      if (!q) {{ tr.style.display = ''; return; }}  // CSS hides .xtra again by default
+      var hit = tr.cells[0].textContent.toLowerCase().indexOf(q) !== -1;
+      tr.style.display = hit ? 'table-row' : 'none';  // table-row overrides .xtra
       if (hit) any = true;
     }});
     d.style.display = (!q || any) ? '' : 'none';
