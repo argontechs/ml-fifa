@@ -171,7 +171,29 @@ def _assign_thirds(qualified, rng, max_tries=200):
     return {slot: by_group[g] for slot, g in zip(slots, letters)}
 
 
-def _knockout_match(t1, t2, predictor, rng, elo_ratings):
+def shootout_table(shootouts_df) -> dict[str, tuple[int, int]]:
+    """team → (shootout wins, shootouts contested), from data.load_shootouts()."""
+    tbl: dict[str, list[int]] = {}
+    for r in shootouts_df.itertuples(index=False):
+        for t in (r.home_team, r.away_team):
+            tbl.setdefault(t, [0, 0])[1] += 1
+        tbl.setdefault(r.winner, [0, 0])[0] += 1
+    return {t: (w, n) for t, (w, n) in tbl.items()}
+
+
+def pens_prob(t1, t2, tbl, elo_ratings) -> float:
+    """P(t1 wins shootout): smoothed historical record blended 50/50 with Elo expectancy."""
+    from . import elo as elo_mod
+    elo_p = elo_mod.expected(elo_ratings.get(t1, 1500), elo_ratings.get(t2, 1500), neutral=True)
+    w1, n1 = tbl.get(t1, (0, 0))
+    w2, n2 = tbl.get(t2, (0, 0))
+    r1 = (w1 + 2) / (n1 + 4)   # Beta(2,2) prior toward 0.5
+    r2 = (w2 + 2) / (n2 + 4)
+    hist_p = r1 / (r1 + r2)
+    return 0.5 * hist_p + 0.5 * elo_p
+
+
+def _knockout_match(t1, t2, predictor, rng, elo_ratings, pens_tbl=None):
     # 13 of 16 R32 venues and all matches from the QF onward are in the US —
     # documented approximation for the displacement feature in knockouts.
     m = predictor.matrix_for(t1, t2, pd.Timestamp("2026-07-01"), "FIFA World Cup", True,
@@ -184,12 +206,12 @@ def _knockout_match(t1, t2, predictor, rng, elo_ratings):
     ehs, eas = _sample_score(met, rng)
     if ehs != eas:
         return t1 if ehs > eas else t2
-    from . import elo as elo_mod
-    p1 = elo_mod.expected(elo_ratings.get(t1, 1500), elo_ratings.get(t2, 1500), neutral=True)
+    p1 = pens_prob(t1, t2, pens_tbl or {}, elo_ratings)
     return t1 if rng.random() < p1 else t2
 
 
-def simulate_tournament(fixtures, predictor, elo_ratings, n_runs=10000, seed=0) -> pd.DataFrame:
+def simulate_tournament(fixtures, predictor, elo_ratings, n_runs=10000, seed=0,
+                        pens_tbl=None) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
     counters: dict[str, dict[str, int]] = {}
 
@@ -216,14 +238,14 @@ def simulate_tournament(fixtures, predictor, elo_ratings, n_runs=10000, seed=0) 
             t1, t2 = resolve(s1, mn), resolve(s2, mn)
             bump(t1, "r32")
             bump(t2, "r32")
-            winners[mn] = _knockout_match(t1, t2, predictor, rng, elo_ratings)
+            winners[mn] = _knockout_match(t1, t2, predictor, rng, elo_ratings, pens_tbl)
         for mn in sorted(CHAIN):
             a, b = CHAIN[mn]
             t1, t2 = winners[a], winners[b]
             stage = STAGE_OF[mn]
             bump(t1, stage)
             bump(t2, stage)
-            winners[mn] = _knockout_match(t1, t2, predictor, rng, elo_ratings)
+            winners[mn] = _knockout_match(t1, t2, predictor, rng, elo_ratings, pens_tbl)
         bump(winners[104], "champion")
 
     teams = sorted(counters)

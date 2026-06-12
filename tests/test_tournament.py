@@ -109,3 +109,26 @@ def test_simulate_tournament_deterministic_and_sane():
 
 
 import pytest  # noqa: E402
+
+
+def test_pens_prob_favors_strong_shootout_record():
+    tbl = {"Germany": (8, 8), "England": (1, 8)}  # (wins, total)
+    p = tournament.pens_prob("Germany", "England", tbl, {"Germany": 1900, "England": 1900})
+    assert p > 0.60
+    # No data → falls back to pure Elo expectancy (equal ratings → 0.5)
+    p2 = tournament.pens_prob("X", "Y", {}, {"X": 1900, "Y": 1900})
+    assert p2 == pytest.approx(0.5)
+
+
+def test_shootout_table_counts_wins_and_totals():
+    import pandas as pd
+    df = pd.DataFrame(
+        {
+            "date": pd.to_datetime(["2020-01-01", "2021-01-01", "2022-01-01"]),
+            "home_team": ["G", "G", "E"],
+            "away_team": ["E", "E", "G"],
+            "winner": ["G", "E", "G"],
+        }
+    )
+    tbl = tournament.shootout_table(df)
+    assert tbl["G"] == (2, 3) and tbl["E"] == (1, 3)

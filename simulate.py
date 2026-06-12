@@ -17,7 +17,9 @@ played, _ = data.load_results()
 _, ratings = elo.compute_elo(played)
 fx = fixtures.load_fixtures()
 
-result = tournament.simulate_tournament(fx, pred, ratings, n_runs=args.runs, seed=args.seed)
+pens = tournament.shootout_table(data.load_shootouts())
+result = tournament.simulate_tournament(fx, pred, ratings, n_runs=args.runs, seed=args.seed,
+                                        pens_tbl=pens)
 print(f"\n=== {args.runs:,} tournament simulations ===")
 print((result.head(15) * 100).round(1).to_string())
 (data.DATA_DIR / "sim_results.json").write_text(result.to_json(orient="index"))

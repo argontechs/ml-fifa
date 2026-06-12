@@ -31,7 +31,9 @@ for r in up.itertuples(index=False):
     })
 
 print("3/5 simulating tournament (10,000 runs)…")
-sim = tournament.simulate_tournament(fx, pred, ratings, n_runs=10000, seed=42)
+pens = tournament.shootout_table(data.load_shootouts())
+sim = tournament.simulate_tournament(fx, pred, ratings, n_runs=10000, seed=42,
+                                     pens_tbl=pens)
 (data.DATA_DIR / "sim_results.json").write_text(sim.to_json(orient="index"))
 
 print("4/5 loading backtest card…")
