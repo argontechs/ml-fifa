@@ -48,3 +48,32 @@ def result_value(home_score: int, away_score: int) -> float:
     if home_score < away_score:
         return 0.0
     return 0.5  # includes shootout matches — dataset scores exclude shootouts by design
+
+
+def compute_elo(
+    played: pd.DataFrame, initial: float = INITIAL
+) -> tuple[pd.DataFrame, dict[str, float]]:
+    """Chronological pass. Returns (copy with elo_{home,away}_{pre,post} columns, final ratings)."""
+    ratings: dict[str, float] = {}
+    pre_h, pre_a, post_h, post_a = [], [], [], []
+    for row in played.itertuples(index=False):
+        rh = ratings.get(row.home_team, initial)
+        ra = ratings.get(row.away_team, initial)
+        we = expected(rh, ra, row.neutral)
+        delta = (
+            tournament_k(row.tournament)
+            * goal_multiplier(row.home_score - row.away_score)
+            * (result_value(row.home_score, row.away_score) - we)
+        )
+        ratings[row.home_team] = rh + delta
+        ratings[row.away_team] = ra - delta
+        pre_h.append(rh)
+        pre_a.append(ra)
+        post_h.append(rh + delta)
+        post_a.append(ra - delta)
+    out = played.copy()
+    out["elo_home_pre"] = pre_h
+    out["elo_away_pre"] = pre_a
+    out["elo_home_post"] = post_h
+    out["elo_away_post"] = post_a
+    return out, ratings

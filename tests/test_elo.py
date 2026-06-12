@@ -40,3 +40,41 @@ def test_2022_final_reproduces_published_change():
     we = elo.expected(2150, 2075, neutral=True)
     delta = 60 * elo.goal_multiplier(0) * (0.5 - we)
     assert round(delta) == -6
+
+
+import pandas as pd  # noqa: E402
+
+
+def _mini_df():
+    return pd.DataFrame(
+        {
+            "date": pd.to_datetime(["2020-01-01", "2020-06-01", "2021-01-01"]),
+            "home_team": ["A", "A", "B"],
+            "away_team": ["B", "C", "C"],
+            "home_score": [2, 0, 1],
+            "away_score": [0, 0, 1],
+            "tournament": ["Friendly", "Friendly", "Friendly"],
+            "neutral": [True, False, True],
+        }
+    )
+
+
+def test_compute_elo_chronology_and_zero_sum():
+    out, ratings = elo.compute_elo(_mini_df())
+    # Match 1: A 2-0 B neutral friendly: ΔR = 20·1.5·(1−0.5) = +15
+    assert out.loc[0, "elo_home_pre"] == 1500 and out.loc[0, "elo_away_pre"] == 1500
+    assert out.loc[0, "elo_home_post"] == pytest.approx(1515)
+    assert out.loc[0, "elo_away_post"] == pytest.approx(1485)
+    # Match 2 uses A's UPDATED rating as pre-match (no leakage of later matches)
+    assert out.loc[1, "elo_home_pre"] == pytest.approx(1515)
+    # Zero-sum: total rating mass conserved
+    assert sum(ratings.values()) == pytest.approx(1500 * 3)
+
+
+def test_compute_elo_pre_never_includes_own_match():
+    df = _mini_df()
+    out1, _ = elo.compute_elo(df)
+    df2 = df.copy()
+    df2.loc[2, "home_score"] = 9  # changing last match must not change its OWN pre-Elo
+    out2, _ = elo.compute_elo(df2)
+    assert out1.loc[2, "elo_home_pre"] == out2.loc[2, "elo_home_pre"]
