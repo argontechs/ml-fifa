@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 
 import pandas as pd
@@ -15,13 +16,29 @@ JETSTREAM_URL = (
 )
 
 
+# words that, immediately preceding a team term, mean it is NOT the team
+# ("new mexico", "new england", "air jordan", "michael jordan")
+_COMPOUND_BLOCKERS = {"mexico": {"new"}, "england": {"new"}, "jordan": {"air", "michael"}}
+
+
+def _term_hit(low: str, term: str) -> bool:
+    """Word-boundary match (audit: bare substring matched 'usa' in 'thousands')."""
+    for m in re.finditer(r"(?<![a-z0-9])" + re.escape(term) + r"(?![a-z0-9])", low):
+        before = low[: m.start()].rstrip()
+        prev = before.split()[-1] if before else ""
+        if prev in _COMPOUND_BLOCKERS.get(term, ()):
+            continue
+        return True
+    return False
+
+
 def route(text: str, kwsets: dict[str, set[str]]) -> str | None:
     """home | away | both | None for one match's keyword sets."""
     low = text.lower()
-    if any(tag in low for tag in kwsets["both"]):
+    if any(_term_hit(low, tag) for tag in kwsets["both"]):
         return "both"
-    home_hit = any(k in low for k in kwsets["home"])
-    away_hit = any(k in low for k in kwsets["away"])
+    home_hit = any(_term_hit(low, k) for k in kwsets["home"])
+    away_hit = any(_term_hit(low, k) for k in kwsets["away"])
     if home_hit and away_hit:
         return "both"
     if home_hit:

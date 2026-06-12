@@ -34,17 +34,24 @@ def _host_of(location: str) -> str:
     return VENUE_HOST[location]
 
 
-def load_fixtures(force: bool = False) -> pd.DataFrame:
+def load_fixtures(force: bool = False, max_age_hours: float = 6.0) -> pd.DataFrame:
     path = data.download(data.FIXTURES_URL, data.DATA_DIR / "fixtures.json",
-                         max_age_hours=6, force=force)
+                         max_age_hours=max_age_hours, force=force)
     feed = json.loads(path.read_text())
     rows = []
     for m in feed:
         home = data.normalize_team(m["HomeTeam"])
         away = data.normalize_team(m["AwayTeam"])
         tbd = data.is_placeholder(m["HomeTeam"]) or data.is_placeholder(m["AwayTeam"])
-        played = m["HomeTeamScore"] is not None
+        home_score, away_score = m["HomeTeamScore"], m["AwayTeamScore"]
+        played = home_score is not None and away_score is not None
         host = _host_of(m["Location"])
+        if away == host and not tbd:
+            # FIFA lists the host as the designated away side in a few fixtures; our
+            # models grant home advantage to the home column — swap so the host gets
+            # it and neutrality is correct (audit HIGH: 3 real group fixtures)
+            home, away = away, home
+            home_score, away_score = away_score, home_score
         rows.append({
             "match_number": m["MatchNumber"],
             "round": m["RoundNumber"],
@@ -55,8 +62,8 @@ def load_fixtures(force: bool = False) -> pd.DataFrame:
             "home": home,
             "away": away,
             "group": (m["Group"] or "").replace("Group ", "") or None,
-            "home_score": m["HomeTeamScore"],
-            "away_score": m["AwayTeamScore"],
+            "home_score": home_score,
+            "away_score": away_score,
             "status": "tbd" if tbd else ("played" if played else "upcoming"),
             "neutral": home != host,
         })

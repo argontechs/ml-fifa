@@ -25,3 +25,19 @@ def test_neutrality_and_host_nations(monkeypatch):
     assert fx.loc[0, "host"] == "Mexico"
     assert bool(fx.loc[1, "neutral"]) is True  # Brazil in New York
     assert fx.loc[1, "host"] == "United States"
+
+
+def test_host_listed_as_away_gets_swapped(monkeypatch, tmp_path):
+    import json
+    f = tmp_path / "feed.json"
+    f.write_text(json.dumps([{
+        "MatchNumber": 50, "RoundNumber": 2, "DateUtc": "2026-06-18 22:00:00Z",
+        "Location": "BC Place Vancouver", "HomeTeam": "Qatar", "AwayTeam": "Canada",
+        "Group": "Group B", "HomeTeamScore": 1, "AwayTeamScore": 2, "Winner": "Canada",
+    }]))
+    monkeypatch.setattr(fixtures.data, "download", lambda url, dest, **kw: f)
+    fx = fixtures.load_fixtures()
+    r = fx.iloc[0]
+    assert r["home"] == "Canada" and r["away"] == "Qatar"      # host swapped to home
+    assert r["home_score"] == 2 and r["away_score"] == 1       # scores follow the swap
+    assert bool(r["neutral"]) is False                          # host has home advantage

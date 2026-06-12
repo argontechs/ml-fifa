@@ -199,6 +199,12 @@ def _match_card(m: dict) -> str:
         for i, ((i_, j_), pr) in enumerate(m["top5"])
     )
     mkt = '<div class="mkt">● market-blended</div>' if m.get("market") else ""
+    ou = ""
+    if m.get("p_over25") is not None:
+        po = m["p_over25"]
+        side = "O" if po >= 0.5 else "U"
+        pct = po if po >= 0.5 else 1 - po
+        ou = f'<span class="chip">{side}2.5 {pct:.0%}</span>'
 
     def _star_links(entries):
         return " · ".join(
@@ -217,13 +223,14 @@ def _match_card(m: dict) -> str:
 <div class="hero">{hs}<span class="dash">–</span>{as_}</div>
 {_side(m['away'], m.get('ctx_away'))}</div>
 <div class="bar">{_seg('w', 'W', ph)}{_seg('d', 'D', pd_)}{_seg('l', 'L', pa)}</div>
-<div class="chips">{chips}</div>{stars}{mkt}
+<div class="chips">{chips}{ou}</div>{stars}{mkt}
 </div>"""
 
 
 def _nav(page: str) -> str:
     return (f'<nav><a href="index.html" class="{"on" if page == "home" else ""}">Upcoming</a>'
             f'<a href="past.html" class="{"on" if page == "past" else ""}">Past matches</a>'
+            f'<a href="leaderboard.html" class="{"on" if page == "leaderboard" else ""}">Leaderboard</a>'
             f'<a href="players.html" class="{"on" if page == "players" else ""}">Players</a>'
             f'<a href="sentiment.html" class="{"on" if page == "sentiment" else ""}">Sentiment</a>'
             f'</nav>')
@@ -282,6 +289,67 @@ using bookmaker odds).</div>
 </body></html>"""
 
 
+def render_leaderboard(view: dict) -> str:
+    """Dedicated standings tab: all 12 groups in full detail + the third-place race."""
+    standings, advance = view["standings"], view["advance"]
+    group_cards = []
+    for g in sorted(standings):
+        rows = ""
+        for pos, r in enumerate(standings[g]):
+            zone = "q" if pos < 2 else ""
+            rows += (
+                f'<div class="grow {zone}">{_flag(r["team"], 18)}<span>{r["team"]}</span>'
+                f'<span class="c">{r["p"]}</span><span class="c">{r["w"]}</span>'
+                f'<span class="c">{r["d"]}</span><span class="c">{r["l"]}</span>'
+                f'<span class="c">{r["gf"]}</span><span class="c">{r["ga"]}</span>'
+                f'<span class="c">{r["gf"] - r["ga"]:+d}</span>'
+                f'<span class="pts">{r["pts"]}</span>'
+                f'<span class="adv">{advance.get(r["team"], 0):.0%}</span></div>'
+            )
+        header = ('<div class="grow hd lb"><span></span><span class="nm">team</span>'
+                  '<span>P</span><span>W</span><span>D</span><span>L</span>'
+                  '<span>GF</span><span>GA</span><span>GD</span><span>Pts</span>'
+                  '<span>Adv</span></div>')
+        group_cards.append(f'<div class="gcard"><h3>Group {g}</h3>{header}{rows}</div>')
+
+    thirds = sorted(
+        ((g, s[2]) for g, s in standings.items() if len(s) >= 3),
+        key=lambda kv: (kv[1]["pts"], kv[1]["gf"] - kv[1]["ga"], kv[1]["gf"]),
+        reverse=True,
+    )
+    third_rows = ""
+    for i, (g, r) in enumerate(thirds):
+        cut = ('<tr><td colspan="7" style="border-bottom:2px solid var(--volt);'
+               'padding:.1rem"></td></tr>') if i == 8 else ""
+        third_rows += (
+            f"{cut}<tr><td class='num'>{i + 1}</td>"
+            f"<td>{_flag(r['team'], 18)} {r['team']}</td><td>{g}</td>"
+            f"<td class='num'>{r['p']}</td><td class='num'>{r['pts']}</td>"
+            f"<td class='num'>{r['gf'] - r['ga']:+d}</td><td class='num'>{r['gf']}</td></tr>"
+        )
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WC26 Predictor · Leaderboard</title>{_FONTS}<style>{_CSS}
+.grow.lb,.gcard .grow{{grid-template-columns:auto 1fr repeat(7,1.6rem) 2rem 2.8rem}}
+</style></head><body>
+<header>
+<h1>WC26<span class="dot">·</span>Leaderboard</h1>
+<div class="sub">live group standings · generated {view['generated_at']}</div>
+{_nav('leaderboard')}
+<div class="ticker"><b>How to read it:</b> green rows are the current top-2 (direct Round-of-32
+qualification); the <b>Adv</b> column is our simulation's probability of reaching the R32 by any
+route. Below the groups: the third-place race — the best 8 of 12 third-placed teams also qualify;
+the volt line marks the cut.</div>
+</header>
+<h2>Groups</h2>
+<div class="ggrid">{''.join(group_cards)}</div>
+<h2>Third-place race · top 8 qualify</h2>
+<table><tr><th class="num">#</th><th>Team</th><th>Grp</th><th class="num">P</th>
+<th class="num">Pts</th><th class="num">GD</th><th class="num">GF</th></tr>{third_rows}</table>
+<footer><a href="index.html">back to predictions</a></footer>
+</body></html>"""
+
+
 def _tracker_html(rows: list[dict], tally: dict) -> str:
     if not rows:
         return '<p class="ctx" style="text-align:left">No completed predictions yet — first frozen picks settle after the next matchday.</p>'
@@ -296,11 +364,19 @@ def _tracker_html(rows: list[dict], tally: dict) -> str:
         f"<td>{'<span class=tick>✓</span>' if r['exact'] else '<span class=cross>✗</span>'}</td></tr>"
         for r in rows
     )
+    retro_line = ""
+    if tally.get("retro_n"):
+        retro_line = (f'<div class="ctx" style="text-align:left;margin-bottom:.6rem">RETRO '
+                      f'(walk-forward, pre-system matches): outcomes '
+                      f'{tally["retro_outcome_hits"]}/{tally["retro_n"]} · exact '
+                      f'{tally["retro_exact_hits"]}/{tally["retro_n"]} — counted separately, '
+                      f'never in the headline numbers.</div>')
     return f"""<div class="tally">
-<div><div class="num">{tally['outcome_hits']}/{tally['n']}</div><div class="lbl">outcomes</div></div>
-<div><div class="num">{tally['exact_hits']}/{tally['n']}</div><div class="lbl">exact scores</div></div>
+<div><div class="num">{tally['outcome_hits']}/{tally['n']}</div><div class="lbl">frozen outcomes</div></div>
+<div><div class="num">{tally['exact_hits']}/{tally['n']}</div><div class="lbl">frozen exact</div></div>
 <div><div class="num">{lock}</div><div class="lbl">lock picks</div></div>
 </div>
+{retro_line}
 <table><tr><th>Match</th><th class="num">Pred</th><th class="num">Actual</th><th>Tier</th><th>Out</th><th>Exact</th></tr>{body}</table>"""
 
 

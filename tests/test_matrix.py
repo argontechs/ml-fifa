@@ -33,6 +33,15 @@ def test_top_scorelines_ordered():
     assert top[0][0][0] > top[0][0][1]  # strong home favorite → home-win modal score
 
 
+def test_p_over_lines():
+    m = matrix.score_matrix(1.4, 1.2, rho=0.0)
+    p15, p25, p35 = (matrix.p_over(m, x) for x in (1.5, 2.5, 3.5))
+    assert 1 > p15 > p25 > p35 > 0  # monotone in the line
+    # hand-check: P(over 0.5) = 1 − P(0-0) = 1 − e^−1.4·e^−1.2
+    import math
+    assert matrix.p_over(m, 0.5) == pytest.approx(1 - math.exp(-2.6), abs=1e-3)
+
+
 def test_tier_thresholds():
     assert matrix.tier(0.75) == "LOCK"
     assert matrix.tier(0.70) == "LOCK"

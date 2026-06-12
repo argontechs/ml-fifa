@@ -12,7 +12,22 @@ PROJECT = "wc2026"
 
 
 def deploy_dashboard(repo_root: Path | None = None, timeout: int = 300) -> bool:
+    import fcntl
+
     root = repo_root or Path(__file__).resolve().parents[2]
+    lock_path = data.DATA_DIR / ".deploy.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    lock = open(lock_path, "w")
+    try:
+        # serialize concurrent deployers (audit: 3 unsynchronized writers raced wrangler)
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        return _deploy_locked(root, timeout)
+    finally:
+        fcntl.flock(lock, fcntl.LOCK_UN)
+        lock.close()
+
+
+def _deploy_locked(root: Path, timeout: int) -> bool:
     env = dict(os.environ)
     token_file = data.DATA_DIR / "cf_token.txt"
     if token_file.exists():

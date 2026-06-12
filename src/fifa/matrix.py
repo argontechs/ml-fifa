@@ -48,6 +48,13 @@ def rescale_wdl(m: np.ndarray, target: tuple[float, float, float]) -> np.ndarray
     return out / out.sum()
 
 
+def p_over(m: np.ndarray, line: float = 2.5) -> float:
+    """P(total goals > line) — a readout of the same matrix, e.g. over 2.5 = i+j >= 3."""
+    n = m.shape[0]
+    i, j = np.indices((n, n))
+    return float(m[(i + j) > line].sum())
+
+
 def tier(p_max: float) -> str:
     if p_max >= LOCK:
         return "LOCK"

@@ -28,11 +28,15 @@ def score_prediction(m: np.ndarray, home_score: int, away_score: int) -> dict:
     top5 = mx.top_scorelines(m, 5)
     pred_score = top5[0][0]
     p_max = max(p)
+    p_o25 = mx.p_over(m, 2.5)
     return {
         "p": p,
         "outcome": out,
         "picked": int(np.argmax(p)),
         "tier": mx.tier(p_max),
+        "p_over25": p_o25,
+        "over25_hit": (p_o25 >= 0.5) == (home_score + away_score >= 3),
+        "over25_brier": float((p_o25 - (home_score + away_score >= 3)) ** 2),
         "rps": rps(p, out),
         "logloss": -float(np.log(max(p[out], 1e-12))),
         "brier": float(np.sum((np.array(p) - np.eye(3)[out]) ** 2)),
@@ -58,6 +62,8 @@ def report_card(rows: list[dict]) -> dict:
         "baseline11_rate": sum(r["is_11"] for r in rows) / n,
         "lock_n": len(locks),
         "lock_acc": (sum(r["picked"] == r["outcome"] for r in locks) / len(locks)) if locks else None,
+        "o25_acc": sum(r.get("over25_hit", False) for r in rows) / n,
+        "o25_brier": sum(r.get("over25_brier", 0.0) for r in rows) / n,
     }
 
 
@@ -77,6 +83,7 @@ def format_card(card: dict, gates: bool = True) -> str:
         f"exact-score rate       {card['exact_rate']:.1%}  (always-1-1 baseline: {card['baseline11_rate']:.1%})",
         f"top-5 scoreline rate   {card['top5_rate']:.1%}",
         f"LOCK picks             {card['lock_n']}  acc {lock}",
+        f"over-2.5 accuracy      {card.get('o25_acc', 0):.1%}  (brier {card.get('o25_brier', 0):.3f})",
     ]
     if gates:
         checks = [

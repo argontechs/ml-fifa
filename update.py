@@ -43,13 +43,16 @@ for r in up.itertuples(index=False):
         "p": [round(x, 4) for x in p], "tier": matrix.tier(max(p)),
         "frozen_at": str(pd.Timestamp.now(tz="UTC")),
     }
-    all_preds.append(rec)
+    now_utc = pd.Timestamp.now(tz="UTC").tz_localize(None)
+    if now_utc <= r.date <= now_utc + pd.Timedelta(hours=48):
+        all_preds.append(rec)  # freeze window: picks lock with fresh odds, pre-kickoff only
     if r.date <= horizon:
         display.append({
             "home": r.home, "away": r.away,
             "when": myt(r.date),
             "comp": f"Group {r.group}" if r.group else f"Round {r.round}",
             "p": p, "tier": rec["tier"], "score": top5[0][0], "top5": top5,
+            "p_over25": matrix.p_over(m, 2.5),
             "ctx_home": base.fb.team_context(r.home, r.date),
             "ctx_away": base.fb.team_context(r.away, r.date),
             "market": (r.home, r.away) in base.book,
@@ -93,6 +96,7 @@ out_dir = Path(__file__).resolve().parent / "dashboard"
 out_dir.mkdir(exist_ok=True)
 (out_dir / "index.html").write_text(dashboard.render(view))
 (out_dir / "past.html").write_text(dashboard.render_past(view))
+(out_dir / "leaderboard.html").write_text(dashboard.render_leaderboard(view))
 try:  # sentiment snapshot page — best-effort, never blocks the predictor refresh
     from sentiment import db as sdb
     from sentiment import publish

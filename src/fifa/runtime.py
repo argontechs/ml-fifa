@@ -13,7 +13,7 @@ from .gbm import GoalModel
 DEFAULT_RHO, DEFAULT_W = -0.05, 0.5
 
 
-def tuned_params() -> tuple[float, float, "WDLCalibrator | None"]:
+def tuned_params(prefer_production: bool = True) -> tuple[float, float, "WDLCalibrator | None"]:
     from .calibrate import WDLCalibrator
 
     path = data.DATA_DIR / "backtest_report.json"
@@ -21,7 +21,10 @@ def tuned_params() -> tuple[float, float, "WDLCalibrator | None"]:
         rep = json.loads(path.read_text())
         # prefer the rolling production calibrator (fit on all out-of-sample predictions
         # through the last backtest run); fall back to the val-only one
-        cal_dict = rep.get("calibrator_production") or rep.get("calibrator")
+        if prefer_production:
+            cal_dict = rep.get("calibrator_production") or rep.get("calibrator")
+        else:  # walk-forward consumers (retro): val-only window predates all targets
+            cal_dict = rep.get("calibrator")
         cal = WDLCalibrator.from_dict(cal_dict) if cal_dict else None
         return rep["rho"], rep["w_dc"], cal
     print("WARNING: no backtest_report.json — using default rho/w (run backtest.py)")
@@ -40,7 +43,7 @@ def build_predictor(force: bool = False) -> Predictor:
     rho, w_dc, cal = tuned_params()
     from . import odds
 
-    book = odds.fetch_book(force=force)
+    book = odds.fetch_book()  # 6h cache governs; force here burned ~96% of monthly quota (audit)
     if book:
         print(f"bookmaker odds loaded for {len(book)} fixtures (market-blended)")
     return Predictor(dc, gbm, fb, rho=rho, w_dc=w_dc, calibrator=cal, book=book)

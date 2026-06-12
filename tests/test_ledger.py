@@ -15,8 +15,8 @@ def test_record_freezes_first_prediction(tmp_path):
     ledger.record([_pred(1, (2, 0))], path)
     ledger.record([_pred(1, (5, 5)), _pred(2, (1, 1))], path)  # mn=1 must NOT change
     book = ledger.load(path)
-    assert book[1]["predicted"] == [2, 0]  # frozen
-    assert book[2]["predicted"] == [1, 1]
+    assert book[(1, "H", "A")]["predicted"] == [2, 0]  # frozen
+    assert book[(2, "H", "A")]["predicted"] == [1, 1]
 
 
 def test_tracker_scores_played_matches(tmp_path):

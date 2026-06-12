@@ -24,7 +24,9 @@ def _view():
              "predicted": (2, 0), "actual": (2, 0), "tier": "LOCK",
              "outcome": True, "exact": True},
         ],
-        "tracker_tally": {"n": 1, "outcome_hits": 1, "exact_hits": 1, "lock_n": 1, "lock_hits": 1},
+        "tracker_tally": {"n": 1, "outcome_hits": 1, "exact_hits": 1, "lock_n": 1,
+                          "lock_hits": 1, "retro_n": 0, "retro_outcome_hits": 0,
+                          "retro_exact_hits": 0},
         "standings": {
             "A": [
                 {"team": "Mexico", "p": 1, "w": 1, "d": 0, "l": 0, "gf": 2, "ga": 0, "pts": 3},
@@ -60,7 +62,9 @@ def test_render_past_page():
          "predicted": (1, 1), "actual": (2, 1), "tier": "LEAN", "p": (0.3, 0.4, 0.3),
          "retro": True, "outcome": False, "exact": False},
     ]
-    v["tracker_tally"] = {"n": 2, "outcome_hits": 1, "exact_hits": 1, "lock_n": 1, "lock_hits": 1}
+    v["tracker_tally"] = {"n": 2, "outcome_hits": 1, "exact_hits": 1, "lock_n": 1,
+                          "lock_hits": 1, "retro_n": 2, "retro_outcome_hits": 2,
+                          "retro_exact_hits": 1}
     html = dashboard.render_past(v)
     for needle in ("Past matches", "retro", "predicted", "full time",
                    "hero hit", "hero miss", "Mexico", "Czech Republic", "1/2"):
@@ -75,11 +79,35 @@ def test_nav_present_on_both_pages():
     assert 'href="index.html"' in html_past
 
 
+def test_render_leaderboard_groups_and_third_race():
+    v = _view()
+    v["standings"] = {
+        g: [{"team": t, "p": 1, "w": 1, "d": 0, "l": 0, "gf": 2, "ga": 0, "pts": 3}
+            for t in (f"T{g}1", f"T{g}2", f"T{g}3", f"T{g}4")]
+        for g in "ABCDEFGHIJKL"
+    }
+    v["standings"]["A"][0]["team"] = "Mexico"
+    html = dashboard.render_leaderboard(v)
+    for needle in ("Leaderboard", "Group A", "Group L", "Third-place race", "Mexico",
+                   "leaderboard.html", "top 8 qualify"):
+        assert needle in html, needle
+
+
+def test_ou_chip_on_match_card():
+    v = _view()
+    v["matches"][0]["p_over25"] = 0.62
+    html = dashboard.render(v)
+    assert "O2.5 62%" in html
+    v["matches"][0]["p_over25"] = 0.38
+    assert "U2.5 62%" in dashboard.render(v)
+
+
 def test_render_empty_tracker_and_matches():
     v = _view()
     v["matches"] = []
     v["tracker_rows"], v["tracker_tally"] = [], {"n": 0, "outcome_hits": 0, "exact_hits": 0,
-                                                 "lock_n": 0, "lock_hits": 0}
+                                                 "lock_n": 0, "lock_hits": 0, "retro_n": 0,
+                                                 "retro_outcome_hits": 0, "retro_exact_hits": 0}
     html = dashboard.render(v)
     assert "No upcoming fixtures" in html
     assert "No completed predictions yet" in html

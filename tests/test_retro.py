@@ -37,8 +37,9 @@ def test_backfill_only_missing_played_matches(tmp_path):
     n = retro.backfill(_fx(), path, trainer=stub_trainer)
     assert n == 2  # the two played matches; the upcoming one is NOT backfilled
     book = ledger.load(path)
-    assert book[1]["retro"] is True and book[2]["retro"] is True
-    assert 3 not in book
+    assert book[(1, "Mexico", "South Africa")]["retro"] is True
+    assert book[(2, "South Korea", "Czech Republic")]["retro"] is True
+    assert all(k[0] != 3 for k in book)
     # one trainer fit per distinct matchday, cutoff = that day at midnight
     assert cutoffs == [pd.Timestamp("2026-06-11"), pd.Timestamp("2026-06-12")]
 
@@ -49,7 +50,7 @@ def test_backfill_never_overwrites_frozen_picks(tmp_path):
                     "kickoff": "x", "predicted": [9, 9], "p": [1, 0, 0], "tier": "LOCK"}], path)
     n = retro.backfill(_fx(), path, trainer=lambda c: StubPredictor())
     assert n == 1  # only match 2 backfilled
-    assert ledger.load(path)[1]["predicted"] == [9, 9]  # frozen pick untouched
+    assert ledger.load(path)[(1, "Mexico", "South Africa")]["predicted"] == [9, 9]
 
 
 def test_tracker_carries_retro_flag(tmp_path):
@@ -57,4 +58,4 @@ def test_tracker_carries_retro_flag(tmp_path):
     retro.backfill(_fx(), path, trainer=lambda c: StubPredictor())
     rows, tally = ledger.tracker(ledger.load(path), _fx())
     assert all(r["retro"] for r in rows)
-    assert tally["n"] == 2
+    assert tally["retro_n"] == 2 and tally["n"] == 0  # retro never in headline cohort

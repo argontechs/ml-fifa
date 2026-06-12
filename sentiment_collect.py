@@ -13,6 +13,7 @@ from fifa import data, fixtures
 from sentiment import collector, db, events, match_window
 
 DB_PATH = data.DATA_DIR / "sentiment.db"
+REPLAY_DB_PATH = data.DATA_DIR / "sentiment_replay.db"
 
 
 async def replay_source(path: str, speed: float):
@@ -28,7 +29,7 @@ async def goal_poller(conn, interval: float = 60.0):
 
     while True:
         try:
-            fx = fixtures.load_fixtures()
+            fx = fixtures.load_fixtures(max_age_hours=0.08)  # ~5 min: live-ish scores for goal events
             now = pd.Timestamp.now(tz="UTC").tz_localize(None)
             active = {m["key"] for m in match_window.active_matches(fx, now)}
             n = events.poll_once(conn, fx, active)
@@ -49,7 +50,7 @@ async def main():
     ap.add_argument("--speed", type=float, default=50.0)
     args = ap.parse_args()
 
-    conn = db.connect(DB_PATH)
+    conn = db.connect(REPLAY_DB_PATH if args.replay else DB_PATH)
     if args.replay:
         # replay assumes the sample's Mexico-South Africa match regardless of clock;
         # synthetic timestamps spread posts across a realistic ~90-minute match

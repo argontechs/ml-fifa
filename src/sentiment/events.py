@@ -12,7 +12,7 @@ def poll_once(conn, fx: pd.DataFrame, active_keys: set[int]) -> int:
     new = 0
     for r in fx.itertuples(index=False):
         key = int(r.match_number)
-        if key not in active_keys or r.home_score is None:
+        if key not in active_keys or pd.isna(r.home_score) or pd.isna(r.away_score):
             continue
         status = f"{int(r.home_score)}-{int(r.away_score)}"
         row = conn.execute(

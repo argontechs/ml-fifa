@@ -26,11 +26,16 @@ def render_once() -> Path:
         conn.close()
 
 
-def latest_post_id() -> int:
+def fingerprint() -> tuple:
+    """Change detector: new posts, newly-scored posts, OR new goal events."""
     conn = db.connect(data.DATA_DIR / "sentiment.db")
     try:
-        row = conn.execute("SELECT COALESCE(MAX(id), 0) FROM posts").fetchone()
-        return int(row[0])
+        row = conn.execute(
+            "SELECT (SELECT COALESCE(MAX(id),0) FROM posts), "
+            "(SELECT COUNT(*) FROM posts WHERE score IS NOT NULL), "
+            "(SELECT COALESCE(MAX(id),0) FROM events)"
+        ).fetchone()
+        return tuple(row)
     finally:
         conn.close()
 
@@ -40,9 +45,9 @@ ap.add_argument("--loop", type=int, default=0, metavar="SECONDS")
 ap.add_argument("--no-deploy", action="store_true")
 args = ap.parse_args()
 
-last_seen = -1
+last_seen = None
 while True:
-    newest = latest_post_id()
+    newest = fingerprint()
     if newest != last_seen:  # only render+deploy when there's actually new data
         out = render_once()
         ok = (not args.no_deploy) and deploy_dashboard()

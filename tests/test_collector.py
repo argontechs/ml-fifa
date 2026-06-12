@@ -29,6 +29,19 @@ def test_route_sides():
     assert collector.route("unrelated cooking post", KW) is None
 
 
+def test_route_word_boundaries_and_compounds():
+    kw_usa = {"home": {"usa", "united states"}, "away": {"paraguay"}, "both": {"#usapar"}}
+    assert collector.route("thousands of fans in the stadium", kw_usa) is None  # 'usa' inside
+    assert collector.route("refusal to celebrate? USAge is odd", kw_usa) is None
+    assert collector.route("USA! USA! USA!", kw_usa) == "home"
+    assert collector.route("Driving through New Mexico tonight", KW) is None  # compound blocker
+    assert collector.route("mexico city is buzzing", KW) == "home"
+    kw_jor = {"home": {"jordan"}, "away": {"austria"}, "both": {"#joraut"}}
+    assert collector.route("new air jordan drop today", kw_jor) is None
+    assert collector.route("Michael Jordan was the GOAT", kw_jor) is None
+    assert collector.route("Jordan defending deep in this half", kw_jor) == "home"
+
+
 def test_consume_inserts_routed_posts(tmp_path):
     conn = db.connect(tmp_path / "s.db")
     messages = [

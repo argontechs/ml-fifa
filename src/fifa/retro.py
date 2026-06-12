@@ -27,14 +27,15 @@ def _default_trainer(cutoff: pd.Timestamp) -> Predictor:
     X, y_home, y_away = fb.fit_transform(elo_df)
     dc = DixonColes().fit(train, ref_date=cutoff)
     gbm = GoalModel().fit(X, y_home, y_away, elo_df["date"], ref_date=cutoff)
-    rho, w_dc, cal = runtime.tuned_params()
+    rho, w_dc, cal = runtime.tuned_params(prefer_production=False)
     return Predictor(dc, gbm, fb, rho=rho, w_dc=w_dc, calibrator=cal)  # no odds book
 
 
 def backfill(fx: pd.DataFrame, path, trainer=_default_trainer) -> int:
     """Add retro predictions for played fixtures missing from the ledger."""
     book = ledger.load(path)
-    missing = fx[(fx["status"] == "played") & (~fx["match_number"].isin(book))]
+    have = [ledger._key(row) in book for row in fx.itertuples(index=False)]
+    missing = fx[(fx["status"] == "played") & (~pd.Series(have, index=fx.index))]
     if missing.empty:
         return 0
     new = []
