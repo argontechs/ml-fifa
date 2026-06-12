@@ -37,6 +37,23 @@ The irreducible randomness of football lives in the badge, not hidden behind it.
 - Elo validation: eloratings.net published per-match changes
 - Optional bookmaker odds: The Odds API (`ODDS_API_KEY` env or `data/odds_api_key.txt`)
 
+## Live sentiment tracker
+
+Real-time crowd mood during matches: Bluesky Jetstream firehose → keyword routing per
+active fixture → multilingual XLM-RoBERTa sentiment (Apple MPS) → live Dash dashboard
+with goal markers. Zero API costs. Match-day runbook (three terminals, or `&` them):
+
+```bash
+.venv/bin/python sentiment_collect.py     # firehose → data/sentiment.db (+ goal polling)
+.venv/bin/python sentiment_score.py       # scores posts within seconds of arrival
+.venv/bin/python sentiment_app.py         # dashboard at http://localhost:8050
+```
+
+Development/demo without a live match:
+`.venv/bin/python sentiment_collect.py --replay tests/replay_sample.jsonl --speed 1000`
+then `sentiment_score.py --once` and open the app. Honesty note: this measures *mention
+mood*, not verified fan allegiance — posts naming both teams chart as "match mood".
+
 ## Layout
 
 `src/fifa/` — data, elo, features, dixon_coles, gbm, matrix, ensemble, evaluate,

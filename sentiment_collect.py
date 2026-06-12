@@ -45,12 +45,22 @@ async def main():
 
     conn = db.connect(DB_PATH)
     if args.replay:
-        # replay assumes the sample's Mexico-South Africa match regardless of clock
+        # replay assumes the sample's Mexico-South Africa match regardless of clock;
+        # synthetic timestamps spread posts across a realistic ~90-minute match
+        import time as _time
+
         match = {"key": 1, "home": "Mexico", "away": "South Africa"}
         windows = [(match, match_window.keywords_for(match))]
         db.upsert_match(conn, 1, "Mexico", "South Africa", "replay", "0-0")
+        t0 = _time.time()
+        ticker = {"i": 0}
+
+        def replay_clock():
+            ticker["i"] += 1
+            return t0 + ticker["i"] * 45.0  # one post ≈ every 45s → ~90 min span
+
         stored = await collector.consume(replay_source(args.replay, args.speed), conn,
-                                         windows_fn=lambda: windows)
+                                         windows_fn=lambda: windows, clock=replay_clock)
         print(f"replay done — {stored} posts stored in {DB_PATH}")
         return
     print("collector running — Ctrl-C to stop")
