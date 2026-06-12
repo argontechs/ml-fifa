@@ -71,4 +71,13 @@ def load_fixtures(force: bool = False, max_age_hours: float = 6.0) -> pd.DataFra
             "winner": winner,
             "neutral": home != host,
         })
-    return pd.DataFrame(rows).sort_values("match_number").reset_index(drop=True)
+    fx = pd.DataFrame(rows).sort_values("match_number").reset_index(drop=True)
+    # redundancy: fixturedownload lagged a final score 75+ min (2026-06-12) — fill
+    # past-kickoff gaps from ESPN's real-time scoreboard
+    from . import livescores
+
+    now = pd.Timestamp.now(tz="UTC").tz_localize(None)
+    dates = livescores.needed_dates(fx, now)
+    if dates:
+        fx = livescores.merge_scores(fx, livescores.fetch_scoreboard(dates), now)
+    return fx

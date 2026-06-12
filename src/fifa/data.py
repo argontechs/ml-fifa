@@ -99,6 +99,7 @@ FIFA_ALIASES = {
     "USA": "United States",
     "Curacao": "Curaçao",
     "Bosnia & Herzegovina": "Bosnia and Herzegovina",  # The Odds API spelling
+    "Bosnia-Herzegovina": "Bosnia and Herzegovina",    # ESPN spelling
 }
 TBD_PLACEHOLDER = "To be announced"
 

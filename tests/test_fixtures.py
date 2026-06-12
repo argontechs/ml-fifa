@@ -2,9 +2,17 @@ from pathlib import Path
 
 import pandas as pd
 
-from fifa import fixtures
+import pytest
+
+from fifa import fixtures, livescores
 
 SAMPLE = Path(__file__).parent / "fixtures_sample.json"
+
+
+@pytest.fixture(autouse=True)
+def _no_espn(monkeypatch):
+    """Unit tests must never hit the live ESPN scoreboard."""
+    monkeypatch.setattr(livescores, "fetch_scoreboard", lambda dates: {})
 
 
 def test_parse_feed_statuses_and_names(monkeypatch):
