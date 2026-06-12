@@ -197,6 +197,16 @@ class FeatureBuilder:
                          columns=self.COLUMNS)
         return self._finalize(X)
 
+    def team_context(self, team: str, date: pd.Timestamp) -> dict:
+        """Display context for the dashboard: current Elo, 1y momentum, recent results."""
+        elo_now = self._ratings.get(team, elo.INITIAL)
+        state = self._teams.get(team)
+        return {
+            "elo": elo_now,
+            "trend1y": self._trend(team, date, elo_now, 365),
+            "last5": list(state.recent)[-5:] if state else [],
+        }
+
     @staticmethod
     def _finalize(X: pd.DataFrame) -> pd.DataFrame:
         for col in ("confed_home", "confed_away"):

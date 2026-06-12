@@ -96,3 +96,15 @@ def test_intercontinental_displacement():
     row3 = fb.features_for("France", "Germany", pd.Timestamp("2026-06-20"),
                            "Friendly", neutral=True, country=None)
     assert row3.loc[0, "intercont_home"] == 0.0
+
+
+def test_team_context_for_dashboard():
+    fb = features.FeatureBuilder()
+    fb.fit_transform(_df())
+    ctx = fb.team_context("A", pd.Timestamp("2020-04-01"))
+    assert ctx["elo"] > 1500  # A: W, D, L, W across the 4 matches
+    assert ctx["last5"] == [1.0, 0.5, 0.0, 1.0]  # A appears in all 4 fixtures
+    assert ctx["last5"][-1] == 1.0  # most recent: A beat B 2-1
+    assert "trend1y" in ctx
+    unknown = fb.team_context("Atlantis", pd.Timestamp("2020-04-01"))
+    assert unknown["elo"] == 1500 and unknown["last5"] == []
