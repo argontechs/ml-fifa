@@ -1,0 +1,32 @@
+{
+  "BRA-Serie A": {
+    "FBref": "Campeonato Brasileiro S\u00e9rie A",
+    "season_start": "Jan",
+    "season_end": "Dec"
+  },
+  "USA-MLS": {
+    "FBref": "Major League Soccer",
+    "season_start": "Feb",
+    "season_end": "Nov"
+  },
+  "SAU-Pro League": {
+    "FBref": "Saudi Pro League",
+    "season_start": "Aug",
+    "season_end": "May"
+  },
+  "MEX-Liga MX": {
+    "FBref": "Liga MX",
+    "season_start": "Jul",
+    "season_end": "May"
+  },
+  "NED-Eredivisie": {
+    "FBref": "Eredivisie",
+    "season_start": "Aug",
+    "season_end": "May"
+  },
+  "POR-Primeira Liga": {
+    "FBref": "Primeira Liga",
+    "season_start": "Aug",
+    "season_end": "May"
+  }
+}
