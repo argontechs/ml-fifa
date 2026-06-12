@@ -3,3 +3,6 @@ transformers
 dash
 plotly
 websockets
+sentencepiece
+tiktoken
+protobuf
