@@ -39,6 +39,19 @@ def predict_fixture(pred: Predictor, home: str, away: str, date, neutral: bool):
     return pred.matrix_for(home, away, pd.Timestamp(date), "FIFA World Cup", neutral)
 
 
+class MemoPredictor:
+    """Same-pairing matrices are deterministic — cache across Monte Carlo runs."""
+
+    def __init__(self, pred):
+        self.pred, self.cache = pred, {}
+
+    def matrix_for(self, home, away, date, tournament_name, neutral):
+        key = (home, away, neutral, str(getattr(date, "date", lambda: date)()))
+        if key not in self.cache:
+            self.cache[key] = self.pred.matrix_for(home, away, date, tournament_name, neutral)
+        return self.cache[key]
+
+
 def format_prediction(home, away, when, comp, p, top5) -> str:
     badge = matrix.tier(max(p))
     tops = ", ".join(f"{i}-{j} ({pr:.1%})" for (i, j), pr in top5)

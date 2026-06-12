@@ -5,20 +5,7 @@ usage: .venv/bin/python simulate.py [--runs 10000] [--seed 42]
 import argparse
 
 from fifa import data, elo, fixtures, runtime, tournament
-
-
-class MemoPredictor:
-    """Same-pairing matrices are deterministic — cache across simulation runs."""
-
-    def __init__(self, pred):
-        self.pred, self.cache = pred, {}
-
-    def matrix_for(self, home, away, date, tournament_name, neutral):
-        key = (home, away, neutral, str(getattr(date, "date", lambda: date)()))
-        if key not in self.cache:
-            self.cache[key] = self.pred.matrix_for(home, away, date, tournament_name, neutral)
-        return self.cache[key]
-
+from fifa.runtime import MemoPredictor
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--runs", type=int, default=10000)
