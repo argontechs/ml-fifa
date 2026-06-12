@@ -42,13 +42,23 @@ def tracker(book: dict[int, dict], fixtures) -> tuple[list[dict], dict]:
         rec = book[r.match_number]
         hs, as_ = int(r.home_score), int(r.away_score)
         ph, pa = rec["predicted"]
-        outcome_hit = evaluate.outcome_of(hs, as_) == evaluate.outcome_of(ph, pa)
+        # Outcome is judged on the W/D/L probabilities, not the modal scoreline —
+        # the most likely single score can be 1-1 while a home win is the most
+        # likely outcome overall.
+        if rec.get("p"):
+            picked = max(range(3), key=lambda k: rec["p"][k])
+        else:
+            picked = evaluate.outcome_of(ph, pa)
+        outcome_hit = evaluate.outcome_of(hs, as_) == picked
         exact_hit = (hs, as_) == (ph, pa)
         rows.append({
             "match_number": r.match_number,
             "home": rec["home"], "away": rec["away"],
             "predicted": (ph, pa), "actual": (hs, as_),
             "tier": rec.get("tier", ""),
+            "p": tuple(rec.get("p", ())),
+            "kickoff": rec.get("kickoff", ""),
+            "retro": rec.get("retro", False),
             "outcome": outcome_hit, "exact": exact_hit,
         })
     tally = {

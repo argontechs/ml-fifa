@@ -56,6 +56,48 @@ def best_thirds(thirds, rng) -> list[str]:
     return [team for team, _ in ranked[:8]]
 
 
+def current_tables(fixtures) -> dict[str, list[dict]]:
+    """Real (played-matches-only) group tables for display. Deterministic tie order."""
+    rng = np.random.default_rng(0)
+    group_rows = fixtures[fixtures["group"].notna()]
+    out: dict[str, list[dict]] = {}
+    for g, sub in group_rows.groupby("group"):
+        teams: list[str] = []
+        for r in sub.itertuples(index=False):
+            for t in (r.home, r.away):
+                if t not in teams:
+                    teams.append(t)
+        played = [
+            (r.home, r.away, int(r.home_score), int(r.away_score))
+            for r in sub.itertuples(index=False)
+            if r.status == "played"
+        ]
+        stats = {t: {"p": 0, "w": 0, "d": 0, "l": 0, "gf": 0, "ga": 0, "pts": 0} for t in teams}
+        for h, a, hs, as_ in played:
+            stats[h]["p"] += 1
+            stats[a]["p"] += 1
+            stats[h]["gf"] += hs
+            stats[h]["ga"] += as_
+            stats[a]["gf"] += as_
+            stats[a]["ga"] += hs
+            if hs > as_:
+                stats[h]["w"] += 1
+                stats[a]["l"] += 1
+                stats[h]["pts"] += 3
+            elif hs < as_:
+                stats[a]["w"] += 1
+                stats[h]["l"] += 1
+                stats[a]["pts"] += 3
+            else:
+                stats[h]["d"] += 1
+                stats[a]["d"] += 1
+                stats[h]["pts"] += 1
+                stats[a]["pts"] += 1
+        order = rank_group(teams, played, rng) if played else teams
+        out[g] = [{"team": t, **stats[t]} for t in order]
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Official knockout structure.
 # R32 seeds verbatim from the fixturedownload feed (matches 73-88):
