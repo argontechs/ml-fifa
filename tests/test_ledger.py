@@ -33,6 +33,11 @@ def test_tracker_scores_played_matches(tmp_path):
     rows, tally = ledger.tracker(ledger.load(path), fx)
     assert len(rows) == 3
     assert tally["n"] == 3
+    # _pred has p=[0.6,0.25,0.15] → all picks are "home win":
+    # match 1 (2-0) hit; match 2 (0-3) miss; match 3 (1-1) miss
+    assert tally["outcome_hits"] == 1
+    assert tally["exact_hits"] == 1  # match 1 predicted 2-0 exactly
+    assert rows[0]["exact"] is True and rows[1]["outcome"] is False
 
 
 def test_outcome_judged_on_wdl_probs_not_modal_scoreline(tmp_path):
@@ -48,6 +53,3 @@ def test_outcome_judged_on_wdl_probs_not_modal_scoreline(tmp_path):
     rows, tally = ledger.tracker(ledger.load(path), fx)
     assert rows[0]["outcome"] is True   # model picked Korea (42% > 35%) — correct
     assert rows[0]["exact"] is False    # 1-1 ≠ 2-1
-    assert tally["outcome_hits"] == 1  # match 1 outcome right (H win); 2 wrong; 3 was draw pred? (1,1) draw vs 0-3 away → wrong; (0,2) away pred vs 1-1 draw → wrong
-    assert tally["exact_hits"] == 1  # match 1 exactly 2-0
-    assert rows[0]["exact"] is True and rows[1]["outcome"] is False
