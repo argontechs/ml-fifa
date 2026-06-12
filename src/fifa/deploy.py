@@ -33,9 +33,12 @@ def _deploy_locked(root: Path, timeout: int) -> bool:
     if token_file.exists():
         env["CLOUDFLARE_API_TOKEN"] = token_file.read_text().strip()
         env["CLOUDFLARE_ACCOUNT_ID"] = ACCOUNT_ID
+    import shutil
+    wrangler = ([shutil.which("wrangler")] if shutil.which("wrangler")
+                else ["npx", "--yes", "wrangler"])
     try:
         res = subprocess.run(
-            ["npx", "--yes", "wrangler", "pages", "deploy", str(root / "dashboard"),
+            [*wrangler, "pages", "deploy", str(root / "dashboard"),
              "--project-name", PROJECT, "--branch", "main", "--commit-dirty=true"],
             timeout=timeout, cwd=root, env=env, capture_output=True, text=True,
         )
