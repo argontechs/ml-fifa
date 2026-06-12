@@ -666,6 +666,28 @@ def test_features_for_future_fixture_matches_training_columns():
     row = fb.features_for("A", "C", pd.Timestamp("2020-04-01"), "FIFA World Cup", neutral=False)
     assert list(row.columns) == list(X.columns)
     assert row.loc[0, "k_tier"] == 60
+
+
+def test_momentum_and_wc_experience():
+    import numpy as np
+    n = 30
+    df = pd.DataFrame(
+        {
+            "date": pd.to_datetime("2018-01-01") + pd.to_timedelta(np.arange(n) * 40, unit="D"),
+            "home_team": ["A"] * n,
+            "away_team": ["B"] * n,
+            "home_score": [2] * n,
+            "away_score": [0] * n,
+            "tournament": ["FIFA World Cup"] * 3 + ["Friendly"] * (n - 3),
+            "neutral": [True] * n,
+        }
+    )
+    out, _ = elo.compute_elo(df)
+    X, _, _ = features.FeatureBuilder().fit_transform(out)
+    last = X.iloc[-1]
+    assert last["elo_trend1y_home"] > 0   # A keeps winning → momentum up over past year
+    assert last["elo_trend1y_away"] < 0   # B keeps losing → momentum down
+    assert last["wc_exp_home"] == 3       # career World Cup finals matches before this game
 ```
 
 - [ ] **Step 2: Run to verify failure** — import error.
@@ -771,6 +793,8 @@ class FeatureBuilder:
         "gf_home", "ga_home", "gf_away", "ga_away",
         "winrate_home", "winrate_away", "rest_home", "rest_away",
         "played_home", "played_away", "h2h_gd",
+        "elo_trend1y_home", "elo_trend1y_away", "elo_trend2y_home", "elo_trend2y_away",
+        "wc_exp_home", "wc_exp_away",
         "k_tier", "neutral", "confed_home", "confed_away",
     ]
 
@@ -778,6 +802,19 @@ class FeatureBuilder:
         self._teams: dict[str, _TeamState] = {}
         self._h2h: dict[tuple[str, str], float] = {}
         self._ratings: dict[str, float] = {}
+        self._elo_hist: dict[str, list[tuple[pd.Timestamp, float]]] = {}
+        self._wc_count: dict[str, int] = {}
+
+    def _trend(self, team, date, elo_now, days):
+        """Elo momentum: rating now minus rating `days` ago (0 if no history that old)."""
+        hist = self._elo_hist.get(team)
+        if not hist:
+            return 0.0
+        cutoff = date - pd.Timedelta(days=days)
+        for d, r in reversed(hist):
+            if d <= cutoff:
+                return elo_now - r
+        return 0.0
 
     def _team(self, name):
         if name not in self._teams:
@@ -799,6 +836,12 @@ class FeatureBuilder:
             "rest_home": sh["rest"], "rest_away": sa["rest"],
             "played_home": sh["played"], "played_away": sa["played"],
             "h2h_gd": h2h,
+            "elo_trend1y_home": self._trend(home, date, elo_home, 365),
+            "elo_trend1y_away": self._trend(away, date, elo_away, 365),
+            "elo_trend2y_home": self._trend(home, date, elo_home, 730),
+            "elo_trend2y_away": self._trend(away, date, elo_away, 730),
+            "wc_exp_home": self._wc_count.get(home, 0),
+            "wc_exp_away": self._wc_count.get(away, 0),
             "k_tier": elo.tournament_k(tournament),
             "neutral": int(neutral),
             "confed_home": CONFED.get(home, "OTHER"),
@@ -821,6 +864,11 @@ class FeatureBuilder:
             self._h2h[key] = self._h2h.get(key, 0.0) * 0.9 + gd
             self._ratings[r.home_team] = r.elo_home_post
             self._ratings[r.away_team] = r.elo_away_post
+            self._elo_hist.setdefault(r.home_team, []).append((r.date, r.elo_home_post))
+            self._elo_hist.setdefault(r.away_team, []).append((r.date, r.elo_away_post))
+            if r.tournament == "FIFA World Cup":
+                self._wc_count[r.home_team] = self._wc_count.get(r.home_team, 0) + 1
+                self._wc_count[r.away_team] = self._wc_count.get(r.away_team, 0) + 1
         X = pd.DataFrame(rows, columns=self.COLUMNS)
         X = self._finalize(X)
         return X, elo_df["home_score"].to_numpy(), elo_df["away_score"].to_numpy()

@@ -23,7 +23,11 @@ Spec: `docs/superpowers/specs/2026-06-12-wc2026-score-predictor-design.md`
 - [ ] Task 18: Static dashboard + update.py daily refresh
 - [ ] Task 19: Final verification, README, vault update
 
-## Accuracy contract (agreed 2026-06-12)
-- LOCK-tier picks (model ≥70% confident): target ≥80% — measured on real backtests
+## Accuracy contract (agreed 2026-06-12, LOCK bar relaxed to 70% same day)
+- LOCK-tier picks (model ≥70% confident): target ≥70% — measured on real backtests (expect 75–85%)
 - All-match W/D/L: 53–60% honest band; exact-score ≥ always-1-1 baseline (~11%)
 - exact-score ≥15% = leakage alarm, NOT success
+
+## Feature set (user-confirmed 2026-06-12)
+Strength (Elo) · last-10 form (win rate + decayed GF/GA) · momentum (Elo trend 1y/2y)
+· rest days · World Cup experience · head-to-head · confederation · match importance · venue/neutrality

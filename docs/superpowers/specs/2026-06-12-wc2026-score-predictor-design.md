@@ -17,6 +17,7 @@ Predict FIFA World Cup 2026 match scorelines and outcome probabilities, trained 
 | Ranked Probability Score | ≤ ~0.205 | 2017 SPC winners: 0.2054; bookmakers ≈ 0.198 (ceiling) |
 | Draw recall | Materially > 0 | Reference LightGBM classifier predicted 2 of 1,784 draws — our architecture must not collapse on draws |
 | Elo engine correctness | Reproduce published eloratings.net per-match changes | e.g. Argentina −6 in the 2022 WC final |
+| LOCK-tier accuracy (picks with ≥70% outcome confidence) | ≥ 70% | User contract (relaxed from 80% on 2026-06-12); calibrated models historically land 75–85% on this subset |
 
 ### Non-goals
 
@@ -62,7 +63,7 @@ Rejected: logistic regression / RF / NN / multiclass scoreline classifiers — o
 
 ### 3.3 Feature builder (strictly pre-match)
 
-Per match row, computed from prior rows only: Elo_home, Elo_away, Elo_diff (with home-advantage term), time-decayed rolling goals for/against (decay ξ ≈ 0.0033/day, per Dixon-Coles replication), win rate last 10, rest days since last match, tournament K-tier, neutral flag, WC2026-host flag, confederation of each side, head-to-head aggregate (decayed), matches played (provisional-team signal). ~15–20 features total. **Leakage guards are unit-tested:** the builder must produce identical features whether or not the target row's result is present in the input.
+Per match row, computed from prior rows only: Elo_home, Elo_away, Elo_diff (with home-advantage term — "how strong the team is"), time-decayed rolling goals for/against (decay ξ = 0.001/day), win rate over last 10 matches, rest days since last match, **Elo momentum** (rating change over the trailing 1 and 2 years — is the team trending up or down), **World Cup experience** (career WC-finals matches played before kickoff), tournament K-tier, neutral flag, WC2026-host flag, confederation of each side, head-to-head aggregate (decayed), matches played (provisional-team signal). ~24 features total. **Leakage guards are unit-tested:** the builder must produce identical features whether or not the target row's result is present in the input.
 
 ### 3.4 Validation protocol
 
