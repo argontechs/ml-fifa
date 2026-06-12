@@ -92,15 +92,25 @@ def run(report_path=None) -> dict:
     test_df = played[is_test]
     print(f"evaluating on test (n={len(test_df)}) …")
     dc_ls2, gbm_ls2 = _lambda_pairs(test_df, dc2, gbm2, X[is_test])
-    raw_card = evaluate.report_card(_eval_rows(test_df, dc_ls2, gbm_ls2, rho, w_dc))
+    test_raw_rows = _eval_rows(test_df, dc_ls2, gbm_ls2, rho, w_dc)
+    raw_card = evaluate.report_card(test_raw_rows)
     test_rows = _eval_rows(test_df, dc_ls2, gbm_ls2, rho, w_dc, calibrator=cal)
     card = evaluate.report_card(test_rows)
+
+    # Production calibrator: rolling — fit on ALL out-of-sample predictions (val + test,
+    # i.e. 2022 → today). The REPORTED card above never uses it (no peeking); re-running
+    # the backtest (monthly cron) rolls this window forward.
+    all_oos = val_rows + test_raw_rows
+    prod_cal = WDLCalibrator().fit([r["p"] for r in all_oos], [r["outcome"] for r in all_oos])
+
     result = {
         "rho": rho,
         "w_dc": w_dc,
-        "test_card": card,          # calibrated — the official card
+        "test_card": card,          # calibrated with the val-only calibrator — the official card
         "raw_card": raw_card,       # uncalibrated, for comparison
-        "calibrator": cal.to_dict(),
+        "calibrator": cal.to_dict(),                  # val-only (report reproducibility)
+        "calibrator_production": prod_cal.to_dict(),  # rolling, for live predictions
+        "prod_cal_n": len(all_oos),
         "test_span": [str(test_df["date"].min().date()), str(test_df["date"].max().date())],
     }
     if report_path:

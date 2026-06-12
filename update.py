@@ -23,6 +23,12 @@ fx = fixtures.load_fixtures(force=True)
 played, _ = data.load_results()
 _, ratings = elo.compute_elo(played)
 
+stars = {}
+try:
+    stars = json.loads((data.DATA_DIR / "player_context.json").read_text())
+except Exception:
+    pass
+
 print("2/6 predicting + freezing all confirmed upcoming fixtures…")
 up = fx[fx["status"] == "upcoming"].sort_values("date")
 all_preds, display = [], []
@@ -47,6 +53,8 @@ for r in up.itertuples(index=False):
             "ctx_home": base.fb.team_context(r.home, r.date),
             "ctx_away": base.fb.team_context(r.away, r.date),
             "market": (r.home, r.away) in base.book,
+            "stars_home": stars.get(r.home, [])[:2],
+            "stars_away": stars.get(r.away, [])[:2],
         })
 n_frozen = ledger.record(all_preds, LEDGER_PATH)
 print(f"   {n_frozen} new predictions frozen into the ledger")

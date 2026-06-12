@@ -30,7 +30,22 @@ generated = (datetime.datetime.now(datetime.UTC)
 html = page.render(meta, labels, xy, names, generated)
 out = Path(__file__).resolve().parent / "dashboard" / "players.html"
 out.write_text(html)
-print(f"done → {out}")
+
+import json
+
+from fifa import data
+from fifa.dashboard import FLAGS
+
+ctx_meta = meta.assign(arch=[names[c] for c in labels])
+context = {}
+for nation, sub in ctx_meta[ctx_meta["nation"].isin(FLAGS)].groupby("nation"):
+    sub = sub.assign(involvement=(sub["npg90"] + sub["ast90"]) * sub["nineties"])
+    top = sub.sort_values(["involvement", "minutes"], ascending=False).head(5)
+    context[nation] = [{"player": r.player, "arch": r.arch.split(" · ")[-1]}
+                       for r in top.itertuples(index=False)]
+(data.DATA_DIR / "player_context.json").write_text(
+    json.dumps(context, ensure_ascii=False))
+print(f"done → {out} (+ player_context.json for {len(context)} nations)")
 
 if args.deploy:
     from fifa.deploy import deploy_dashboard

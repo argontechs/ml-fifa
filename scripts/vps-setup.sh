@@ -11,6 +11,7 @@ systemctl enable --now wc-collector wc-scorer wc-publish
 ( crontab -l 2>/dev/null | grep -v wc2026 || true
   echo '0 */3 * * * cd /opt/wc2026 && .venv/bin/python update.py >> data/update.log 2>&1'
   echo '0 6 * * 1 cd /opt/wc2026 && .venv/bin/python players_build.py --deploy >> data/players.log 2>&1'
+  echo '0 5 1 * * cd /opt/wc2026 && .venv/bin/python backtest.py >> data/backtest.log 2>&1'
 ) | crontab -
 
 echo "--- services ---"

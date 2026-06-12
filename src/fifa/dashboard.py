@@ -82,6 +82,9 @@ h2::after{content:"";flex:1;height:1px;background:var(--line)}
 .chip{border:1px solid var(--line);border-radius:3px;padding:.12rem .45rem;color:var(--dim);font-size:10.5px}
 .chip.first{border-color:var(--volt-dim);color:var(--volt)}
 .mkt{color:var(--faint);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;margin-top:.55rem}
+.stars{color:var(--dim);font-size:10.5px;margin-top:.5rem}
+.stars a{color:var(--ink);text-decoration:none;border-bottom:1px dotted var(--faint)}
+.stars .v{color:var(--faint);padding:0 .4rem}
 .tally{display:flex;gap:2.2rem;margin:.4rem 0 1rem;flex-wrap:wrap}
 .tally .num{font-family:'Saira Condensed';font-size:2.2rem;font-weight:700;color:var(--volt);line-height:1}
 .tally .lbl{color:var(--dim);font-size:10px;letter-spacing:.14em;text-transform:uppercase}
@@ -132,6 +135,17 @@ nav a:hover{color:var(--ink)}
 """
 
 _FONTS = (
+    # social link previews: without og:image, messengers grab the first <img>
+    # (a 40px flag) and blur it to card size
+    '<meta property="og:title" content="WC26 Predictor — honest ML World Cup predictions">'
+    '<meta property="og:description" content="Machine-learned scorelines from 49,000 '
+    'internationals. Every pick frozen before kickoff, every miss on the record. '
+    'Updated every 3 hours.">'
+    '<meta property="og:image" content="https://wc2026.argontechs.dev/og.png">'
+    '<meta property="og:image:width" content="1200">'
+    '<meta property="og:image:height" content="630">'
+    '<meta property="og:type" content="website">'
+    '<meta name="twitter:card" content="summary_large_image">'
     '<link rel="icon" href="data:image/svg+xml,'
     '%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E'
     '%3Ctext y=%27.9em%27 font-size=%2790%27%3E%E2%9A%BD%3C/text%3E%3C/svg%3E">'
@@ -185,6 +199,17 @@ def _match_card(m: dict) -> str:
         for i, ((i_, j_), pr) in enumerate(m["top5"])
     )
     mkt = '<div class="mkt">● market-blended</div>' if m.get("market") else ""
+
+    def _star_links(entries):
+        return " · ".join(
+            f'<a href="players.html" title="{e["arch"]}">{e["player"]}</a>'
+            for e in entries
+        )
+
+    stars = ""
+    if m.get("stars_home") or m.get("stars_away"):
+        stars = (f'<div class="stars">★ {_star_links(m.get("stars_home", []))}'
+                 f'<span class="v">vs</span>{_star_links(m.get("stars_away", []))}</div>')
     return f"""<div class="card">
 <div class="meta"><span>{m['when']} · {m['comp']}</span>
 <span class="badge {m['tier']}">{m['tier']}</span></div>
@@ -192,7 +217,7 @@ def _match_card(m: dict) -> str:
 <div class="hero">{hs}<span class="dash">–</span>{as_}</div>
 {_side(m['away'], m.get('ctx_away'))}</div>
 <div class="bar">{_seg('w', 'W', ph)}{_seg('d', 'D', pd_)}{_seg('l', 'L', pa)}</div>
-<div class="chips">{chips}</div>{mkt}
+<div class="chips">{chips}</div>{stars}{mkt}
 </div>"""
 
 

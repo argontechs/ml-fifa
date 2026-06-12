@@ -5,7 +5,9 @@ import pandas as pd
 
 from fifa import data as fdata
 
-ACTIVE_BEFORE = pd.Timedelta(minutes=30)
+# 3h pre-match: captures buildup mood, and gives the kickoff-frozen pre-match
+# sentiment snapshot (prematch.py) a real sample to work with
+ACTIVE_BEFORE = pd.Timedelta(minutes=180)
 ACTIVE_AFTER = pd.Timedelta(minutes=150)
 
 # FIFA trigraph codes for all 48 WC2026 teams — verified against

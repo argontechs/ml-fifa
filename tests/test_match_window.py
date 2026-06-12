@@ -22,8 +22,8 @@ def _fx(now):
             "home": ["Mexico", "France", "Brazil"],
             "away": ["South Africa", "Senegal", "Morocco"],
             "date": [now - pd.Timedelta(minutes=100),   # in play
-                     now + pd.Timedelta(minutes=10),    # about to start
-                     now + pd.Timedelta(hours=4)],      # far future
+                     now + pd.Timedelta(minutes=150),   # inside the 3h pre-match window
+                     now + pd.Timedelta(hours=4)],      # beyond the window
             "status": ["played", "upcoming", "upcoming"],
         }
     )

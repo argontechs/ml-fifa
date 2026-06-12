@@ -24,6 +24,8 @@ async def replay_source(path: str, speed: float):
 
 
 async def goal_poller(conn, interval: float = 60.0):
+    from sentiment import prematch
+
     while True:
         try:
             fx = fixtures.load_fixtures()
@@ -32,6 +34,10 @@ async def goal_poller(conn, interval: float = 60.0):
             n = events.poll_once(conn, fx, active)
             if n:
                 print(f"⚽ {n} goal event(s) recorded")
+            n_pre = prematch.record_kickoffs(
+                conn, fx, data.DATA_DIR / "sentiment_prematch.jsonl", now)
+            if n_pre:
+                print(f"📋 {n_pre} pre-match mood snapshot(s) frozen")
         except Exception as exc:  # noqa: BLE001 — polling must never kill collection
             print(f"goal poll skipped ({exc})")
         await asyncio.sleep(interval)

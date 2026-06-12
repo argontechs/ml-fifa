@@ -19,7 +19,10 @@ def tuned_params() -> tuple[float, float, "WDLCalibrator | None"]:
     path = data.DATA_DIR / "backtest_report.json"
     if path.exists():
         rep = json.loads(path.read_text())
-        cal = WDLCalibrator.from_dict(rep["calibrator"]) if "calibrator" in rep else None
+        # prefer the rolling production calibrator (fit on all out-of-sample predictions
+        # through the last backtest run); fall back to the val-only one
+        cal_dict = rep.get("calibrator_production") or rep.get("calibrator")
+        cal = WDLCalibrator.from_dict(cal_dict) if cal_dict else None
         return rep["rho"], rep["w_dc"], cal
     print("WARNING: no backtest_report.json — using default rho/w (run backtest.py)")
     return DEFAULT_RHO, DEFAULT_W, None

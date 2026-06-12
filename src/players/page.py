@@ -103,7 +103,27 @@ free source — cut rather than guessed.</div>
 <h2>Style map · every dot is a player</h2>
 {_scatter(meta, labels, xy, names)}
 <h2>WC2026 nations · profiled players</h2>
+<input id="psearch" type="search" placeholder="Search any player — e.g. Ronaldo, Neymar, Yamal…"
+ style="width:100%;max-width:420px;background:#10160f;border:1px solid #222b1e;color:#e9eee4;
+ padding:.55rem .8rem;border-radius:6px;font-family:inherit;font-size:13px;margin-bottom:.8rem">
 {_nation_tables(meta, labels, names)}
+<script>
+document.getElementById('psearch').addEventListener('input', function () {{
+  var q = this.value.trim().toLowerCase();
+  document.querySelectorAll('details').forEach(function (d) {{
+    var any = false;
+    d.querySelectorAll('tr').forEach(function (tr) {{
+      if (!tr.cells || tr.cells.length < 2) return;
+      var name = tr.cells[0].textContent.toLowerCase();
+      var hit = !q || name.indexOf(q) !== -1;
+      tr.style.display = hit ? '' : 'none';
+      if (hit) any = true;
+    }});
+    d.style.display = (!q || any) ? '' : 'none';
+    d.open = !!q && any;
+  }});
+}});
+</script>
 <footer>Data: FBref via soccerdata · flags by flagcdn.com ·
 <a href="index.html">back to predictions</a></footer>
 </body></html>"""
