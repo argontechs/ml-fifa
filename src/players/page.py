@@ -46,7 +46,8 @@ def _scatter(meta, labels, xy, names) -> str:
 
 def _flag(team: str, px: int = 18) -> str:
     code = FLAGS.get(team)
-    return (f'<img src="https://flagcdn.com/w20/{code}.png" alt="" '
+    return (f'<img src="https://flagcdn.com/w20/{code}.png" alt="" loading="lazy" '
+            f'onerror="this.style.display=\'none\'" '
             f'style="width:{px}px;border-radius:1px"> ') if code else ""
 
 

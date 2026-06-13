@@ -35,3 +35,9 @@ def test_render_players_page():
 def test_nav_has_three_tabs_everywhere():
     assert 'href="players.html"' in dashboard._nav("home")
     assert 'href="players.html"' in page._nav_html()
+
+
+def test_players_flag_has_onerror_fallback():
+    from players import page
+    html = page._flag("Brazil", 18)
+    assert "onerror=" in html and "display='none'" in html and 'alt=""' in html

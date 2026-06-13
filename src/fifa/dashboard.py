@@ -159,8 +159,11 @@ def _flag(team: str, px: int = 34) -> str:
     code = FLAGS.get(team)
     if not code:
         return ""
+    # alt="" because the team name is always printed adjacent (flag is decorative);
+    # onerror collapses the element if flagcdn drops a request, so a transient miss
+    # shows nothing rather than a broken-image glyph + alt text
     return (f'<img src="https://flagcdn.com/w{40 if px > 24 else 20}/{code}.png" '
-            f'alt="{team}" loading="lazy">')
+            f'alt="" loading="lazy" onerror="this.style.display=\'none\'">')
 
 
 def _form_dots(last5) -> str:

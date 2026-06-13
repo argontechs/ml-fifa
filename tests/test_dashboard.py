@@ -111,3 +111,12 @@ def test_render_empty_tracker_and_matches():
     html = dashboard.render(v)
     assert "No upcoming fixtures" in html
     assert "No completed predictions yet" in html
+
+
+def test_flag_has_onerror_fallback_and_decorative_alt():
+    # a flagcdn hiccup must collapse the flag, not show a broken-image glyph + alt text
+    html = dashboard._flag("South Africa", 18)
+    assert "flagcdn.com/w20/za.png" in html
+    assert 'onerror=' in html and "display='none'" in html
+    assert 'alt=""' in html  # decorative — the team name is always printed adjacent
+    assert dashboard._flag("Atlantis", 18) == ""  # unknown team → no element at all
