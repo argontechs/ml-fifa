@@ -22,7 +22,7 @@ def _view():
         "tracker_rows": [
             {"match_number": 1, "home": "Mexico", "away": "South Africa",
              "predicted": (2, 0), "actual": (2, 0), "tier": "LOCK",
-             "outcome": True, "exact": True},
+             "p": (0.70, 0.18, 0.12), "outcome": True, "exact": True},
         ],
         "tracker_tally": {"n": 1, "outcome_hits": 1, "exact_hits": 1, "lock_n": 1,
                           "lock_hits": 1, "retro_n": 0, "retro_outcome_hits": 0,
@@ -41,15 +41,49 @@ def _view():
 def test_render_full_view():
     html = dashboard.render(_view())
     for needle in (
-        "France", "Senegal", "STRONG", "1<span class=\"dash\">–</span>0",  # hero score
+        "France", "Senegal", "STRONG",
+        "FRANCE", "58%", "to win",            # outcome-call hero (not the exact score)
+        "likeliest 1–0", "low-confidence",    # exact score demoted to a labelled chip
+        "1X · France or draw · 82%",          # double-chance chip w/ plain-English gloss
         "flagcdn.com/w40/fr.png",            # flags
         "ELO 2130", "↑42", "↓12",            # context + momentum arrows
         "Track record", "✓",                  # honesty tracker
+        "Sample so far", "avg stated confidence", "for fun only",  # honest reframe
+        "Exact (fun)",                         # demoted exact-score column
         "Group A", "Argentina", "21.0%",       # standings + champions
         "market-blended", "Honest numbers",
         ">+2<", ">-2<",                          # goal-difference columns
     ):
         assert needle in html, needle
+    # the exact score must NOT be the visual hero any more
+    assert "1<span class=\"dash\">–</span>0" not in html
+
+
+def test_match_card_modal_draw_shows_caveat():
+    v = _view()
+    v["matches"][0]["p"] = (0.30, 0.42, 0.28)  # draw is the modal outcome
+    html = dashboard.render(v)
+    assert "DRAW" in html and "most likely" in html
+    assert "model rarely calls draws" in html
+
+
+def test_draw_blindspot_ticker_only_when_a_draw_was_missed():
+    v = _view()
+    # one frozen miss that ended level → the blind-spot ticker must appear
+    v["tracker_rows"] = [
+        {"match_number": 7, "home": "Brazil", "away": "Morocco", "predicted": (1, 0),
+         "actual": (1, 1), "tier": "STRONG", "p": (0.55, 0.27, 0.18),
+         "outcome": False, "exact": False},
+    ]
+    v["tracker_tally"] = {"n": 1, "outcome_hits": 0, "exact_hits": 0, "lock_n": 0,
+                          "lock_hits": 0, "retro_n": 0, "retro_outcome_hits": 0,
+                          "retro_exact_hits": 0}
+    assert "Known blind spot — draws" in dashboard.render(v)
+    # no draw among misses → ticker must self-suppress (never a stale claim)
+    v["tracker_rows"][0]["actual"] = (0, 2)
+    v["tracker_rows"][0]["outcome"] = True
+    v["tracker_tally"]["outcome_hits"] = 1
+    assert "Known blind spot — draws" not in dashboard.render(v)
 
 
 def test_render_past_page():
@@ -91,6 +125,37 @@ def test_render_leaderboard_groups_and_third_race():
     for needle in ("Leaderboard", "Group A", "Group L", "Third-place race", "Mexico",
                    "leaderboard.html", "top 8 qualify"):
         assert needle in html, needle
+
+
+def test_track_record_figures_come_from_card_not_hardcoded():
+    # the long-run / exact / baseline numbers must mirror the live backtest card,
+    # never a stale literal that can contradict the header (review HIGH finding)
+    v = _view()
+    v["card"] = {**v["card"], "wdl_acc": 0.611, "exact_rate": 0.137, "baseline11_rate": 0.099}
+    html = dashboard.render(v)
+    assert "61.1% model long-run" in html      # from card['wdl_acc'], not "59.7%"
+    assert "~14%" in html                       # ~card['exact_rate'] rounded
+    assert "always-1-1 baseline 9.9%" in html   # from card['baseline11_rate']
+    assert "59.7% model long-run" not in html   # the old hardcoded literal is gone
+    assert "gap is noise" not in html           # softened overclaim
+
+
+def test_draw_blindspot_handles_none_recall():
+    # a backtest test set with zero draws sets draw_recall=None; the ticker must not
+    # crash and must not fabricate a false "0.0%" recall (review MEDIUM/LOW finding)
+    v = _view()
+    v["card"] = {**v["card"], "draw_recall": None}
+    v["tracker_rows"] = [
+        {"match_number": 7, "home": "Brazil", "away": "Morocco", "predicted": (1, 0),
+         "actual": (1, 1), "tier": "STRONG", "p": (0.55, 0.27, 0.18),
+         "outcome": False, "exact": False},
+    ]
+    v["tracker_tally"] = {"n": 1, "outcome_hits": 0, "exact_hits": 0, "lock_n": 0,
+                          "lock_hits": 0, "retro_n": 0, "retro_outcome_hits": 0,
+                          "retro_exact_hits": 0}
+    html = dashboard.render(v)  # must not raise
+    assert "Known blind spot — draws" in html
+    assert "0.0%" not in html  # no fabricated recall when it is undefined
 
 
 def test_ou_chip_on_match_card():

@@ -1,6 +1,8 @@
 """Static dashboard generator — floodlit-pitch telemetry aesthetic, zero JS."""
 from __future__ import annotations
 
+from . import matrix
+
 # flagcdn.com ISO codes for all 48 WC2026 teams (+ a few likely names)
 FLAGS = {
     "Mexico": "mx", "South Africa": "za", "South Korea": "kr", "Czech Republic": "cz",
@@ -195,13 +197,35 @@ def _seg(cls: str, label: str, p: float) -> str:
 
 
 def _match_card(m: dict) -> str:
-    (hs, as_) = m["score"]
     ph, pd_, pa = m["p"]
-    chips = "".join(
-        f'<span class="chip{" first" if i == 0 else ""}">{i_}-{j_} {pr:.0%}</span>'
-        for i, ((i_, j_), pr) in enumerate(m["top5"])
-    )
-    mkt = '<div class="mkt">● market-blended</div>' if m.get("market") else ""
+    # Hero is the OUTCOME CALL — the thing the model is actually confident about —
+    # not the fragile exact score. Index matches ledger.py's outcome scoring so the
+    # card and the track record can never disagree about who we picked.
+    idx = max(range(3), key=lambda k: m["p"][k])
+    fav = m["home"] if idx == 0 else (m["away"] if idx == 2 else "DRAW")
+    pwin = m["p"][idx]
+    call = (f'<div class="duo"><div class="team" style="font-size:1.3rem">'
+            f'{fav.upper() if fav != "DRAW" else "DRAW"}</div>'
+            f'<div class="hero" style="font-size:2.6rem">{pwin:.0%}</div>'
+            f'<div class="lbl2">{"to win" if fav != "DRAW" else "most likely"}</div></div>')
+
+    # the single most-likely scoreline is demoted to a clearly-labelled low-confidence
+    # chip (exact-score is ~14% even at the model's best — never a confidence signal)
+    (hs, as_), pr0 = m["top5"][0]
+    likeliest = (f'<span class="chip first">likeliest {hs}–{as_} · {pr0:.0%} · '
+                 f'low-confidence</span>')
+    rest = "".join(f'<span class="chip">{i_}-{j_} {pr:.0%}</span>'
+                   for (i_, j_), pr in m["top5"][1:])
+
+    # double-chance: the "safer" two-way cover, with a plain-English gloss so a casual
+    # reader isn't left decoding "1X". Purely a readout of our own p — not a market call.
+    code, dc_p = matrix.double_chance((ph, pd_, pa))
+    drop = {"1X": 2, "12": 1, "X2": 0}[code]
+    gloss = (f'{m["home"]} or draw' if drop == 2 else
+             f'{m["away"]} or draw' if drop == 0 else
+             f'{m["home"]} or {m["away"]} (no draw)')
+    dc = f'<span class="chip">{code} · {gloss} · {dc_p:.0%}</span>'
+
     ou = ""
     if m.get("p_over25") is not None:
         po = m["p_over25"]
@@ -219,14 +243,17 @@ def _match_card(m: dict) -> str:
     if m.get("stars_home") or m.get("stars_away"):
         stars = (f'<div class="stars">★ {_star_links(m.get("stars_home", []))}'
                  f'<span class="v">vs</span>{_star_links(m.get("stars_away", []))}</div>')
+    draw_note = ('<div class="mkt">model rarely calls draws — see track record</div>'
+                 if idx == 1 else "")
+    mkt = '<div class="mkt">● market-blended</div>' if m.get("market") else ""
     return f"""<div class="card">
 <div class="meta"><span>{m['when']} · {m['comp']}</span>
 <span class="badge {m['tier']}">{m['tier']}</span></div>
 <div class="face">{_side(m['home'], m.get('ctx_home'))}
-<div class="hero">{hs}<span class="dash">–</span>{as_}</div>
+{call}
 {_side(m['away'], m.get('ctx_away'))}</div>
 <div class="bar">{_seg('w', 'W', ph)}{_seg('d', 'D', pd_)}{_seg('l', 'L', pa)}</div>
-<div class="chips">{chips}{ou}</div>{stars}{mkt}
+<div class="chips">{likeliest}{dc}{ou}{rest}</div>{stars}{draw_note}{mkt}
 </div>"""
 
 
@@ -369,10 +396,64 @@ the volt line marks the cut.</div>
 </body></html>"""
 
 
-def _tracker_html(rows: list[dict], tally: dict) -> str:
+def _tracker_html(rows: list[dict], tally: dict, card: dict) -> str:
+    # Lead with what the model is actually built to do (outcomes) + an honest
+    # calibration read, with the tiny sample welded into every label so a live
+    # scoreboard can never be mistaken for a verdict. Exact-score is demoted to a
+    # "for-fun" footnote (see the design synthesis behind this block).
+    n, card_n = tally["n"], card["n"]
+    if n == 0:
+        sample = (f'<div class="ticker"><b>No frozen picks have settled yet.</b> The only '
+                  f'honest performance number on this page is the backtest above '
+                  f'({card_n:,} matches) — everything here fills in after the first matchday.</div>')
+    else:
+        sample = (f'<div class="ticker"><b>Sample so far: {n} settled picks.</b> Far too few to '
+                  f'judge this model — treat every number below as a live scoreboard, not a verdict. '
+                  f'The honest performance estimate is the backtest above ({card_n:,} matches). '
+                  f'A LOCK-tier claim alone needs ~30+ settled picks before it means anything.</div>')
     if not rows:
-        return '<p class="ctx" style="text-align:left">No completed predictions yet — first frozen picks settle after the next matchday.</p>'
+        return (sample + '<p class="ctx" style="text-align:left;margin-top:.8rem">No completed '
+                'predictions yet — first frozen picks settle after the next matchday.</p>')
+
+    frozen = [r for r in rows if not r.get("retro")]
     lock = f"{tally['lock_hits']}/{tally['lock_n']}" if tally["lock_n"] else "—"
+    draw_ticker = exact_fun = ""
+    if n:
+        realized = tally["outcome_hits"] / n
+        confs = [max(r["p"]) for r in frozen if r.get("p")]
+        mean_conf = f"{sum(confs) / len(confs):.0%}" if confs else "—"
+        misses = sum(1 for r in frozen if not r["outcome"])
+        draw_misses = sum(1 for r in frozen
+                          if not r["outcome"] and r["actual"][0] == r["actual"][1])
+        # every backtest figure comes from the live card (single source of truth) so the
+        # block can never contradict the header ticker or go stale on a retrain
+        cell_a = (f'<div><div class="num">{tally["outcome_hits"]}/{n}</div>'
+                  f'<div class="lbl">frozen outcomes · n={n}</div>'
+                  f'<div class="ctx" style="text-align:left">{realized:.0%} — vs 33% coin-flip · '
+                  f'{card["wdl_acc"]:.1%} model long-run</div></div>')
+        cell_b = (f'<div><div class="num">{mean_conf}</div>'
+                  f'<div class="lbl">avg stated confidence</div>'
+                  f'<div class="ctx" style="text-align:left">right {realized:.0%} so far — '
+                  f'too few picks (n={n}) to read into the gap</div></div>')
+        if draw_misses:
+            dr = card.get("draw_recall")  # None when a backtest test set had no draws
+            recall_clause = f" (backtested draw recall {dr:.1%})" if dr is not None else ""
+            draw_ticker = (f'<div class="ticker"><b>Known blind spot — draws:</b> {draw_misses} of '
+                           f'our {misses} live misses were matches that ended level. The model almost '
+                           f'never names a draw as its single most likely result{recall_clause} — so a '
+                           f'favourite that draws reads as a miss here. We are an outcome-leaning model, '
+                           f'not a draw detector.</div>')
+        exact_fun = (f'<div class="mkt">Exact scoreline nailed: {tally["exact_hits"]}/{n} — for fun '
+                     f'only. Even at its backtested best the model hits the precise score '
+                     f'~{card["exact_rate"]:.0%} (always-1-1 baseline {card["baseline11_rate"]:.1%}): '
+                     f'the hardest-possible metric, never a confidence signal.</div>')
+    else:
+        cell_a = cell_b = ""
+    cell_c = (f'<div><div class="num" style="color:var(--dim)">{lock}</div>'
+              f'<div class="lbl">lock picks</div>'
+              f'<div class="ctx" style="text-align:left">long-run ≥70% contract · '
+              f'needs ~30+ to judge</div></div>')
+
     body = "".join(
         f"<tr><td>{_flag(r['home'], 18)} {r['home']} v {r['away']} {_flag(r['away'], 18)}</td>"
         f"<td class='num'>{r['predicted'][0]}-{r['predicted'][1]}</td>"
@@ -385,18 +466,15 @@ def _tracker_html(rows: list[dict], tally: dict) -> str:
     )
     retro_line = ""
     if tally.get("retro_n"):
-        retro_line = (f'<div class="ctx" style="text-align:left;margin-bottom:.6rem">RETRO '
+        retro_line = (f'<div class="ctx" style="text-align:left;margin:.6rem 0">RETRO '
                       f'(walk-forward, pre-system matches): outcomes '
                       f'{tally["retro_outcome_hits"]}/{tally["retro_n"]} · exact '
                       f'{tally["retro_exact_hits"]}/{tally["retro_n"]} — counted separately, '
                       f'never in the headline numbers.</div>')
-    return f"""<div class="tally">
-<div><div class="num">{tally['outcome_hits']}/{tally['n']}</div><div class="lbl">frozen outcomes</div></div>
-<div><div class="num">{tally['exact_hits']}/{tally['n']}</div><div class="lbl">frozen exact</div></div>
-<div><div class="num">{lock}</div><div class="lbl">lock picks</div></div>
-</div>
-{retro_line}
-<table><tr><th>Match</th><th class="num">Pred</th><th class="num">Actual</th><th>Tier</th><th>Out</th><th>Exact</th></tr>{body}</table>"""
+    return f"""{sample}
+<div class="tally" style="margin-top:1rem">{cell_a}{cell_b}{cell_c}</div>
+{draw_ticker}{exact_fun}{retro_line}
+<table><tr><th>Match</th><th class="num">Pred</th><th class="num">Actual</th><th>Tier</th><th>Out</th><th>Exact (fun)</th></tr>{body}</table>"""
 
 
 def _standings_html(standings: dict, advance: dict) -> str:
@@ -447,7 +525,7 @@ W/D/L {card['wdl_acc']:.1%} · exact score {card['exact_rate']:.1%} (always-1-1 
 LOCK marks the picks that historically do.</div>
 </header>
 <h2>Track record</h2>
-{_tracker_html(view['tracker_rows'], view['tracker_tally'])}
+{_tracker_html(view['tracker_rows'], view['tracker_tally'], card)}
 <h2>Upcoming · next 7 days</h2>
 <div class="grid">{matches}</div>
 <h2>Groups · advance odds</h2>

@@ -11,7 +11,8 @@ from . import data
 
 SPORT = "soccer_fifa_world_cup"
 URL = f"https://api.the-odds-api.com/v4/sports/{SPORT}/odds"
-MARKET_WEIGHT = 0.6  # literature: the market is sharper than any public model
+# the blend weight lives in ensemble.market_weight() (depth-aware); odds only supplies
+# the consensus probabilities + how many books backed them
 
 
 def _api_key() -> str | None:
@@ -22,8 +23,8 @@ def _api_key() -> str | None:
     return f.read_text().strip() if f.exists() else None
 
 
-def parse_feed(feed) -> dict[tuple[str, str], tuple[float, float, float]]:
-    """(home, away) → consensus devigged (p_home, p_draw, p_away)."""
+def parse_feed(feed) -> dict[tuple[str, str], tuple[float, float, float, int]]:
+    """(home, away) → consensus devigged (p_home, p_draw, p_away, n_books)."""
     book = {}
     for match in feed:
         home = data.normalize_team(match["home_team"])
@@ -44,7 +45,7 @@ def parse_feed(feed) -> dict[tuple[str, str], tuple[float, float, float]]:
                 probs.append(raw / raw.sum())  # devig: normalize the overround away
         if probs:
             p = np.mean(probs, axis=0)
-            book[(home, away)] = (float(p[0]), float(p[1]), float(p[2]))
+            book[(home, away)] = (float(p[0]), float(p[1]), float(p[2]), len(probs))
     return book
 
 

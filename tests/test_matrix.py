@@ -42,6 +42,15 @@ def test_p_over_lines():
     assert matrix.p_over(m, 0.5) == pytest.approx(1 - math.exp(-2.6), abs=1e-3)
 
 
+def test_double_chance_drops_least_likely():
+    # away least likely → 1X (home or draw)
+    assert matrix.double_chance((0.60, 0.25, 0.15)) == ("1X", pytest.approx(0.85))
+    # draw least likely → 12 (home or away)
+    assert matrix.double_chance((0.45, 0.10, 0.45)) == ("12", pytest.approx(0.90))
+    # home least likely → X2 (draw or away)
+    assert matrix.double_chance((0.15, 0.30, 0.55)) == ("X2", pytest.approx(0.85))
+
+
 def test_tier_thresholds():
     assert matrix.tier(0.75) == "LOCK"
     assert matrix.tier(0.70) == "LOCK"

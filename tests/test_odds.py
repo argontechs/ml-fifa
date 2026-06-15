@@ -24,10 +24,11 @@ SAMPLE = [
 
 def test_implied_probs_devigged_and_keyed():
     book = odds.parse_feed(SAMPLE)
-    p = book[("France", "Senegal")]
-    assert sum(p) == pytest.approx(1.0)
-    assert 0.55 < p[0] < 0.68  # ~1/1.63 devigged
-    assert p[1] < p[0] and p[2] < p[0]
+    ph, pdr, pa, n = book[("France", "Senegal")]
+    assert ph + pdr + pa == pytest.approx(1.0)  # devigged probs sum to 1
+    assert n == 2  # both bookmakers in the sample backed the consensus
+    assert 0.55 < ph < 0.68  # ~1/1.63 devigged
+    assert pdr < ph and pa < ph
 
 
 def test_missing_fixture_returns_none():

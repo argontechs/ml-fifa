@@ -6,7 +6,21 @@ import pandas as pd
 from . import matrix as mx
 
 
-MARKET_WEIGHT = 0.6
+# How much to trust the bookmaker consensus over the model, scaled by book depth.
+# A 40+ book World Cup slate is the sharpest signal in football → trust it 0.70 (the
+# literature puts the sharp-market weight in the 0.6–0.8 band). A thin 1–2 book market
+# is noisier → fall back toward an even split. Reversible: tune the two endpoints.
+DEEP_BOOK, THIN_BOOK = 8, 2
+W_DEEP, W_THIN = 0.70, 0.50
+
+
+def market_weight(n_books: int) -> float:
+    if n_books >= DEEP_BOOK:
+        return W_DEEP
+    if n_books <= THIN_BOOK:
+        return W_THIN
+    frac = (n_books - THIN_BOOK) / (DEEP_BOOK - THIN_BOOK)
+    return W_THIN + (W_DEEP - W_THIN) * frac
 
 
 class Predictor:
@@ -33,10 +47,10 @@ class Predictor:
             m = mx.rescale_wdl(m, tuple(self.calibrator.transform(mx.wdl(m))[0]))
         market = self.book.get((home, away))
         if market is not None:
+            book_p = market[:3]
+            n_books = market[3] if len(market) > 3 else DEEP_BOOK  # back-compat
+            w = market_weight(n_books)
             model_p = mx.wdl(m)
-            target = tuple(
-                MARKET_WEIGHT * mp + (1 - MARKET_WEIGHT) * op
-                for mp, op in zip(market, model_p)
-            )
+            target = tuple(w * bp + (1 - w) * op for bp, op in zip(book_p, model_p))
             m = mx.rescale_wdl(m, target)
         return m

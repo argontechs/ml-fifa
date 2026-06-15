@@ -55,6 +55,15 @@ def p_over(m: np.ndarray, line: float = 2.5) -> float:
     return float(m[(i + j) > line].sum())
 
 
+def double_chance(p: tuple[float, float, float]) -> tuple[str, float]:
+    """The 'safer' two-way cover: drop the least-likely single outcome, keep the rest.
+    p = (home, draw, away) → ('1X' | '12' | 'X2', combined prob).
+    drop away → 1X (home or draw) · drop draw → 12 (home or away) · drop home → X2 (draw or away)."""
+    drop = min(range(3), key=lambda k: p[k])
+    label = {0: "X2", 1: "12", 2: "1X"}[drop]
+    return label, float(sum(p) - p[drop])
+
+
 def tier(p_max: float) -> str:
     if p_max >= LOCK:
         return "LOCK"
