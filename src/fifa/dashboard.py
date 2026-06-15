@@ -198,33 +198,26 @@ def _seg(cls: str, label: str, p: float) -> str:
 
 def _match_card(m: dict) -> str:
     ph, pd_, pa = m["p"]
-    # Hero is the OUTCOME CALL — the thing the model is actually confident about —
-    # not the fragile exact score. Index matches ledger.py's outcome scoring so the
-    # card and the track record can never disagree about who we picked.
+    # The predicted scoreline is the hero (it has the punch), with a small grey pick
+    # line beneath naming the model's actual call. idx matches ledger.py's outcome
+    # scoring so the pick line and the track record can never disagree.
     idx = max(range(3), key=lambda k: m["p"][k])
     fav = m["home"] if idx == 0 else (m["away"] if idx == 2 else "DRAW")
     pwin = m["p"][idx]
-    call = (f'<div class="duo"><div class="team" style="font-size:1.3rem">'
-            f'{fav.upper() if fav != "DRAW" else "DRAW"}</div>'
-            f'<div class="hero" style="font-size:2.6rem">{pwin:.0%}</div>'
-            f'<div class="lbl2">{"to win" if fav != "DRAW" else "most likely"}</div></div>')
-
-    # the single most-likely scoreline is demoted to a clearly-labelled low-confidence
-    # chip (exact-score is ~14% even at the model's best — never a confidence signal)
-    (hs, as_), pr0 = m["top5"][0]
-    likeliest = (f'<span class="chip first">likeliest {hs}–{as_} · {pr0:.0%} · '
-                 f'low-confidence</span>')
-    rest = "".join(f'<span class="chip">{i_}-{j_} {pr:.0%}</span>'
-                   for (i_, j_), pr in m["top5"][1:])
+    (hs, as_), _ = m["top5"][0]
+    pick = f"{fav} win · {pwin:.0%}" if fav != "DRAW" else f"draw most likely · {pwin:.0%}"
+    call = (f'<div class="duo"><div class="hero">{hs}<span class="dash">–</span>{as_}</div>'
+            f'<div class="ctx">{pick}</div></div>')
 
     # double-chance: the "safer" two-way cover, with a plain-English gloss so a casual
     # reader isn't left decoding "1X". Purely a readout of our own p — not a market call.
+    # It takes the volt anchor now that the scoreline is the hero again.
     code, dc_p = matrix.double_chance((ph, pd_, pa))
     drop = {"1X": 2, "12": 1, "X2": 0}[code]
     gloss = (f'{m["home"]} or draw' if drop == 2 else
              f'{m["away"]} or draw' if drop == 0 else
              f'{m["home"]} or {m["away"]} (no draw)')
-    dc = f'<span class="chip">{code} · {gloss} · {dc_p:.0%}</span>'
+    dc = f'<span class="chip first">{code} · {gloss} · {dc_p:.0%}</span>'
 
     ou = ""
     if m.get("p_over25") is not None:
@@ -232,6 +225,11 @@ def _match_card(m: dict) -> str:
         side = "O" if po >= 0.5 else "U"
         pct = po if po >= 0.5 else 1 - po
         ou = f'<span class="chip">{side}2.5 {pct:.0%}</span>'
+
+    # the hero already shows the likeliest scoreline, so the chips carry only the
+    # remaining top-5 alternatives (top-5 hit rate stays fully visible: 1 hero + 4 chips)
+    rest = "".join(f'<span class="chip">{i_}-{j_} {pr:.0%}</span>'
+                   for (i_, j_), pr in m["top5"][1:])
 
     def _star_links(entries):
         return " · ".join(
@@ -253,7 +251,7 @@ def _match_card(m: dict) -> str:
 {call}
 {_side(m['away'], m.get('ctx_away'))}</div>
 <div class="bar">{_seg('w', 'W', ph)}{_seg('d', 'D', pd_)}{_seg('l', 'L', pa)}</div>
-<div class="chips">{likeliest}{dc}{ou}{rest}</div>{stars}{draw_note}{mkt}
+<div class="chips">{dc}{ou}{rest}</div>{stars}{draw_note}{mkt}
 </div>"""
 
 

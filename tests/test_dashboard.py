@@ -42,8 +42,8 @@ def test_render_full_view():
     html = dashboard.render(_view())
     for needle in (
         "France", "Senegal", "STRONG",
-        "FRANCE", "58%", "to win",            # outcome-call hero (not the exact score)
-        "likeliest 1–0", "low-confidence",    # exact score demoted to a labelled chip
+        "1<span class=\"dash\">–</span>0",    # predicted scoreline is the hero again
+        "France win · 58%",                    # small grey pick line under the score
         "1X · France or draw · 82%",          # double-chance chip w/ plain-English gloss
         "flagcdn.com/w40/fr.png",            # flags
         "ELO 2130", "↑42", "↓12",            # context + momentum arrows
@@ -55,15 +55,13 @@ def test_render_full_view():
         ">+2<", ">-2<",                          # goal-difference columns
     ):
         assert needle in html, needle
-    # the exact score must NOT be the visual hero any more
-    assert "1<span class=\"dash\">–</span>0" not in html
 
 
 def test_match_card_modal_draw_shows_caveat():
     v = _view()
     v["matches"][0]["p"] = (0.30, 0.42, 0.28)  # draw is the modal outcome
     html = dashboard.render(v)
-    assert "DRAW" in html and "most likely" in html
+    assert "draw most likely · 42%" in html   # pick line names the draw
     assert "model rarely calls draws" in html
 
 
